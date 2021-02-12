@@ -1,7 +1,7 @@
 import crypto = require("crypto");
 
 export class SessionSigner {
-  public static SECRET_KEY = "sdoijfoieaojmfmfiqujroifzxco";
+  public static SECRET_KEY = "some secrets";
   private static ALGORITHM = "sha256";
 
   public sign(plainSessionStr: string, timestamp: number): string {
@@ -14,14 +14,17 @@ export class SessionSigner {
 }
 
 export class SessionBuilder {
-  public constructor(private sessionSigner: SessionSigner) {}
+  public constructor(
+    private sessionSigner: SessionSigner,
+    private date: Date
+  ) {}
 
   public static create(): SessionBuilder {
-    return new SessionBuilder(new SessionSigner());
+    return new SessionBuilder(new SessionSigner(), new Date());
   }
 
   public build(plainSessionStr: string): string {
-    let timestamp = Date.now();
+    let timestamp = this.date.getTime();
     let signature = this.sessionSigner.sign(plainSessionStr, timestamp);
     return `${plainSessionStr}|${timestamp}|${signature}`;
   }
