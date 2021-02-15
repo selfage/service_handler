@@ -12,37 +12,6 @@ export interface BaseServiceHandler {
   handle: (logContext: string, req: express.Request) => Promise<any>;
 }
 
-export async function handleBase(
-  req: express.Request,
-  res: express.Response,
-  serviceHandler: BaseServiceHandler
-): Promise<void> {
-  let randomId = Math.floor(Math.random() * 10000);
-  let logContext = `Request ${Date.now()}-${randomId}:`;
-  console.log(logContext + ` Matched ${req.url} with ${serviceHandler.path}.`);
-
-  // Always allow CORS.
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "*");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-
-  // Inform client-side to cache response.
-  res.vary("Accept-Encoding");
-
-  let serviceResponse: any;
-  try {
-    serviceResponse = await serviceHandler.handle(logContext, req);
-  } catch (e) {
-    if (e.statusCode) {
-      res.sendStatus(e.statusCode);
-    } else {
-      res.sendStatus(500);
-    }
-    return;
-  }
-  res.json(serviceResponse);
-}
-
 export class UnauthedBaseServiceHandler<ServiceRequest, ServiceResponse>
   implements BaseServiceHandler {
   public path = this.serviceHandler.serviceDescriptor.path;
@@ -97,8 +66,39 @@ export class AuthedBaseServiceHandler<
     }
     let session = parseMessage(
       rawSessionStr,
-      this.serviceHandler.serviceDescriptor.sessionDescriptor
+      this.serviceHandler.sessionDescriptor
     );
     return this.serviceHandler.handle(logContext, serviceRequest, session);
   }
+}
+
+export async function handleBase(
+  req: express.Request,
+  res: express.Response,
+  serviceHandler: BaseServiceHandler
+): Promise<void> {
+  let randomId = Math.floor(Math.random() * 10000);
+  let logContext = `Request ${Date.now()}-${randomId}:`;
+  console.log(logContext + ` Matched ${req.url} with ${serviceHandler.path}.`);
+
+  // Always allow CORS.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "*");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+
+  // Inform client-side to cache response.
+  res.vary("Accept-Encoding");
+
+  let serviceResponse: any;
+  try {
+    serviceResponse = await serviceHandler.handle(logContext, req);
+  } catch (e) {
+    if (e.statusCode) {
+      res.sendStatus(e.statusCode);
+    } else {
+      res.sendStatus(500);
+    }
+    return;
+  }
+  res.json(serviceResponse);
 }

@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@selfage/message": "^1.0.3",
+    "@selfage/service_descriptor": "^1.0.2",
     "express": "^4.17.1"
   }
 }
