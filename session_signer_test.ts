@@ -45,6 +45,37 @@ TEST_RUNNER.run({
       },
     },
     {
+      name: "ExtractWithEmptySession",
+      execute: () => {
+        // Prepare
+        let extractor = SessionExtractor.create();
+
+        // Execute
+        let error = assertThrow(() => extractor.extract(undefined));
+
+        // Verify
+        assertThat(error, eqError(new Error("Missing")), "missing error");
+      },
+    },
+    {
+      name: "ExtractWithMalformattedSession",
+      execute: () => {
+        // Prepare
+        let extractor = SessionExtractor.create();
+        let malformattedSession = "some random string|12313";
+
+        // Execute
+        let error = assertThrow(() => extractor.extract(malformattedSession));
+
+        // Verify
+        assertThat(
+          error,
+          eqError(new Error("Invalid signed session")),
+          "malformatted error"
+        );
+      },
+    },
+    {
       name: "ExtractWithInvalidSignature",
       execute: () => {
         // Prepare

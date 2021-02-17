@@ -60,7 +60,7 @@ export class GetCommentsHandler implements UnauthedServiceHandler<GetCommentsReq
 }]
 ```
 
-See `@selfage/service_descriptor` for `service` and `@selfage/message` for `message`. Typically this definition itself will also be shared with your client-side code.
+The schema of the JSON file is an array of [definition](https://github.com/selfage/cli/blob/0f724015a4ea309d80ff231db555fe0383c91329/generate/definition.ts#L73). Typically this definition will also be shared with your client-side code.
 
 It's not that important to know what's inside `get_comments_service.ts` except the exported interfaces and variables that are referenced above, but we still show it as the following for completeness.
 
@@ -115,7 +115,7 @@ export let GET_COMMENTS: UnauthedServiceDescriptor<GetCommentsRequest, GetCommen
 
 ## Partial implementation of AuthedServiceHandler
 
-Authentication/Authorization is done through validating a signed session string, passed from the request body, i.e., `signedSession` field from the request. See `@selfage/service_descriptor` for an example of generating an `AuthedServiceDescriptor`. Also read further below for how to obtain a signed session string. 
+Authentication/Authorization is done through validating a signed session string, passed from the request body, i.e., `signedSession` field from the request. See `@selfage/service_descriptor` for an example of generating an `AuthedServiceDescriptor`. Also read further below for how to obtain a signed session string and catch validation error.
 
 `AuthedServiceHandler` is an [interface](https://github.com/selfage/service_handler/blob/857e340c67aa21d259e7d56fb5875c1d07e6e396/service_handler.ts#L16) requiring `sessionDescriptor` to help parse the validated session string into a structured data. See `@selfage/message` for how to generate a `MessageDescriptor`.
 
@@ -248,3 +248,7 @@ import { SessionExtractor } from '@selfage/service_handler/session_signer';
 SessionExtractor.SESSION_LONGEVITY = 30 * 24 * 60 * 60 * 1000; // milliseconds
 // Configure routing and start server.
 ```
+
+## Session validation error
+
+All `AuthedServiceHandler`s registered with `registerAuthed()` will validate incoming requests' `signedSession` field, and either catch validation errors or proceed to the implemented `AuthedServiceHandler`s. For any validatoin error caught, we will return the 401 error code to the client, regardless of missing session, invalid signature or expired timestamp.

@@ -39,7 +39,11 @@ export class SessionExtractor {
     return new SessionExtractor(new SessionSigner());
   }
 
-  public extract(signedSession: string): string {
+  public extract(signedSession?: string): string {
+    if (!signedSession) {
+      throw Error("Missing a signed session input.");
+    }
+
     let pieces = signedSession.split("|");
     if (pieces.length !== 3) {
       throw Error("Invalid signed session string.");
