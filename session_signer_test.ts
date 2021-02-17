@@ -31,11 +31,7 @@ TEST_RUNNER.run({
         // Prepare
         let builder = new SessionBuilder(
           new SessionSigner(),
-          new (class extends Date {
-            public getTime(): number {
-              return Date.now() - 30 * 24 * 60 * 60 * 1000 - 1;
-            }
-          })()
+          () => Date.now() - 30 * 24 * 60 * 60 * 1000 - 1
         );
         let extractor = SessionExtractor.create();
         let plainSessionStr = "some random string";

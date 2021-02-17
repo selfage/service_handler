@@ -16,7 +16,7 @@ function registerBase(
   app: express.Express,
   serviceHandler: BaseServiceHandler
 ): void {
-  app.post(serviceHandler.path, (req, res) =>
+  app.post(serviceHandler.path, express.json(), (req, res) =>
     handleBase(req, res, serviceHandler)
   );
 }

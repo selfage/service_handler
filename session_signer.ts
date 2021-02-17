@@ -16,15 +16,15 @@ export class SessionSigner {
 export class SessionBuilder {
   public constructor(
     private sessionSigner: SessionSigner,
-    private date: Date
+    private getNow: () => number,
   ) {}
 
   public static create(): SessionBuilder {
-    return new SessionBuilder(new SessionSigner(), new Date());
+    return new SessionBuilder(new SessionSigner(), () => Date.now());
   }
 
   public build(plainSessionStr: string): string {
-    let timestamp = this.date.getTime();
+    let timestamp = this.getNow();
     let signature = this.sessionSigner.sign(plainSessionStr, timestamp);
     return `${plainSessionStr}|${timestamp}|${signature}`;
   }
