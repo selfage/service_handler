@@ -19,6 +19,7 @@ TEST_RUNNER.run({
 
         // Execute
         let signedSession = builder.build(plainSessionStr);
+        console.log(signedSession);
         let extractedSessionStr = extractor.extract(signedSession);
 
         // Verify
@@ -31,7 +32,7 @@ TEST_RUNNER.run({
         // Prepare
         let builder = new SessionBuilder(
           new SessionSigner(),
-          () => Date.now() - 30 * 24 * 60 * 60 * 1000 - 1
+          () => Date.now() - 30 * 24 * 60 * 60 * 1000 - 1000
         );
         let extractor = SessionExtractor.create();
         let plainSessionStr = "some random string";

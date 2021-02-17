@@ -245,7 +245,7 @@ You can configure the session longevity as the following, usually before startin
 ```TypeScript
 import { SessionExtractor } from '@selfage/service_handler/session_signer';
 
-SessionExtractor.SESSION_LONGEVITY = 30 * 24 * 60 * 60 * 1000; // milliseconds
+SessionExtractor.SESSION_LONGEVITY = 30 * 24 * 60 * 60; // seconds
 // Configure routing and start server.
 ```
 

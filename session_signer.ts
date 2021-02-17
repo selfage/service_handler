@@ -1,5 +1,9 @@
 import crypto = require("crypto");
 
+function millisecondsToSeconds(milli: number): number {
+  return Math.floor(milli / 1000);
+}
+
 export class SessionSigner {
   public static SECRET_KEY = "some secrets";
   private static ALGORITHM = "sha256";
@@ -16,7 +20,7 @@ export class SessionSigner {
 export class SessionBuilder {
   public constructor(
     private sessionSigner: SessionSigner,
-    private getNow: () => number,
+    private getNow: () => number
   ) {}
 
   public static create(): SessionBuilder {
@@ -24,14 +28,14 @@ export class SessionBuilder {
   }
 
   public build(plainSessionStr: string): string {
-    let timestamp = this.getNow();
+    let timestamp = millisecondsToSeconds(this.getNow());
     let signature = this.sessionSigner.sign(plainSessionStr, timestamp);
-    return `${plainSessionStr}|${timestamp}|${signature}`;
+    return `${plainSessionStr}|${timestamp.toString(16)}|${signature}`;
   }
 }
 
 export class SessionExtractor {
-  public static SESSION_LONGEVITY = 30 * 24 * 60 * 60 * 1000;
+  public static SESSION_LONGEVITY = 30 * 24 * 60 * 60; // seconds
 
   public constructor(private sessionSigner: SessionSigner) {}
 
@@ -49,14 +53,17 @@ export class SessionExtractor {
       throw Error("Invalid signed session string.");
     }
     let plainSessionStr = pieces[0];
-    let timestamp = Number.parseInt(pieces[1]);
+    let timestamp = Number.parseInt(pieces[1], 16);
     let signature = pieces[2];
 
     let signatureExpected = this.sessionSigner.sign(plainSessionStr, timestamp);
     if (signature !== signatureExpected) {
       throw Error("Invalid session signature");
     }
-    if (Date.now() - timestamp > SessionExtractor.SESSION_LONGEVITY) {
+    if (
+      millisecondsToSeconds(Date.now()) - timestamp >
+      SessionExtractor.SESSION_LONGEVITY
+    ) {
       throw Error("Session expired.");
     }
     return plainSessionStr;
