@@ -19,7 +19,6 @@ TEST_RUNNER.run({
 
         // Execute
         let signedSession = builder.build(plainSessionStr);
-        console.log(signedSession);
         let extractedSessionStr = extractor.extract(signedSession);
 
         // Verify
