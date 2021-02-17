@@ -30,7 +30,7 @@ export class SessionBuilder {
   public build(plainSessionStr: string): string {
     let timestamp = millisecondsToSeconds(this.getNow());
     let signature = this.sessionSigner.sign(plainSessionStr, timestamp);
-    return `${plainSessionStr}|${timestamp.toString(16)}|${signature}`;
+    return `${plainSessionStr}|${timestamp.toString(36)}|${signature}`;
   }
 }
 
@@ -53,7 +53,7 @@ export class SessionExtractor {
       throw Error("Invalid signed session string.");
     }
     let plainSessionStr = pieces[0];
-    let timestamp = Number.parseInt(pieces[1], 16);
+    let timestamp = Number.parseInt(pieces[1], 36);
     let signature = pieces[2];
 
     let signatureExpected = this.sessionSigner.sign(plainSessionStr, timestamp);
