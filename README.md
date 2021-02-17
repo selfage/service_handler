@@ -115,7 +115,7 @@ export let GET_COMMENTS: UnauthedServiceDescriptor<GetCommentsRequest, GetCommen
 
 ## Partial implementation of AuthedServiceHandler
 
-Authentication/Authorization is done through validating a signed session string, passed from the request body, i.e., `signedSession` field from the request. See `@selfage/service_descriptor` for an example of generating an `AuthedServiceDescriptor`. Also read further below for how to obtain a signed session string and catch validation error.
+Authentication/Authorization is done through validating a signed session string, passed from the request body, i.e., `signedSession` field from the request. See `@selfage/service_descriptor` for an example of generating an `AuthedServiceDescriptor`. Also read further below for how to obtain a signed session string.
 
 `AuthedServiceHandler` is an [interface](https://github.com/selfage/service_handler/blob/857e340c67aa21d259e7d56fb5875c1d07e6e396/service_handler.ts#L16) requiring `sessionDescriptor` to help parse the validated session string into a structured data. See `@selfage/message` for how to generate a `MessageDescriptor`.
 
