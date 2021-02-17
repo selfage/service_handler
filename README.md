@@ -138,7 +138,7 @@ Suppose we have a session defined like the following in `my_session.json`.
 }]
 ```
 
-Then we can partially implement `AuthedServiceHandler` as an abstract class as the following in `authed_service_handler.ts`.
+After generting `my_session.ts` by running `selfage gen my_session`, we can partially implement `AuthedServiceHandler` as an abstract class as the following in `authed_service_handler.ts`.
 
 ```TypeScript
 import { AuthedServiceHandler } from '@selfage/service_handler';
