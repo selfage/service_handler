@@ -4,6 +4,7 @@ import {
   UnauthedServiceHandler,
 } from "./service_handler";
 import { SessionExtractor } from "./session_signer";
+import { newUnauthorizedError } from "@selfage/http_error";
 import { parseMessage } from "@selfage/message/parser";
 import { WithSession } from "@selfage/service_descriptor";
 
@@ -61,8 +62,7 @@ export class AuthedBaseServiceHandler<
         serviceRequest.signedSession
       );
     } catch (e) {
-      e.statusCode = 401;
-      throw e;
+      throw newUnauthorizedError("Please re-try login.", e);
     }
     let session = parseMessage(
       rawSessionStr,
