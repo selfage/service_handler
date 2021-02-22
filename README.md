@@ -252,3 +252,7 @@ SessionExtractor.SESSION_LONGEVITY = 30 * 24 * 60 * 60; // seconds
 ## Session validation error
 
 All `AuthedServiceHandler`s registered with `registerAuthed()` will validate incoming requests' `signedSession` field, and either catch validation errors or proceed to the implemented `AuthedServiceHandler`s. For any validatoin error caught, we will return the 401 error code to the client, regardless of missing session, invalid signature or expired timestamp.
+
+## Request body size
+
+We choose 1MiB or `1024*1024` bytes as the limit of the request body size, making the same assumption as Google's Datastore which imposes the same size limit for an entity.

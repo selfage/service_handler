@@ -16,8 +16,10 @@ function registerBase(
   app: express.Express,
   serviceHandler: BaseServiceHandler
 ): void {
-  app.post(serviceHandler.path, express.json(), (req, res) =>
-    handleBase(req, res, serviceHandler)
+  app.post(
+    serviceHandler.path,
+    express.json({ limit: 1024 * 1024 }),
+    (req, res) => handleBase(req, res, serviceHandler)
   );
 }
 
