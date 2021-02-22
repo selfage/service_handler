@@ -6,7 +6,7 @@
 
 ## Overview
 
-Written in TypeScript and compiled to ES6. Provides type-safe service handler interfaces to be implemented and hooked onto `Express.js`. The service here only refers to one simple kind of client-server interaction: Sending a HTTP POST request in JSON as request body and receiving a response in JSON.
+Written in TypeScript and compiled to ES6 with inline source map & source. See [@selfage/tsconfig](https://www.npmjs.com/package/@selfage/tsconfig) for full compiler options. Provides type-safe service handler interfaces to be implemented and hooked onto `Express.js`. The service here only refers to one simple kind of client-server interaction: Sending a HTTP POST request in JSON as request body and receiving a response in JSON.
 
 ## UnauthedServiceHandler
 
