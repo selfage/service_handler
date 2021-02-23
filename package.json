@@ -18,6 +18,7 @@
   "homepage": "https://github.com/selfage/service_handler#readme",
   "main": "./service_handler.js",
   "types": "./service_handler.d.ts",
+  "files": ["**/*.d.ts", "**/*.js", "!**/*_test.*"],
   "devDependencies": {
     "@selfage/test_matcher": "^1.0.3",
     "@selfage/test_runner": "^1.0.4",
