@@ -59,7 +59,7 @@ async function postToLocal(
   reqStream.write(jsonString);
   reqStream.end();
   return await new Promise<http.IncomingMessage>((resolve) => {
-    reqStream.on("response", async (resStream) => {
+    reqStream.on("response", (resStream) => {
       resolve(resStream);
     });
   });
