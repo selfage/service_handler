@@ -1,6 +1,6 @@
 {
   "name": "@selfage/service_handler",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Http-based service handlers on top of expressjs.",
   "repository": {
     "type": "git",
@@ -22,7 +22,8 @@
   "files": [
     "**/*.d.ts",
     "**/*.js",
-    "!**/*_test.*"
+    "!**/*_test.*",
+    "!test_data/**/*"
   ],
   "devDependencies": {
     "@selfage/test_matcher": "^1.0.3",
