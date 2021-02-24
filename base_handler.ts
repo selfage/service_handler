@@ -62,10 +62,13 @@ export class AuthedBaseServiceHandler<
         serviceRequest.signedSession
       );
     } catch (e) {
-      throw newUnauthorizedError("Please re-try login.", e);
+      throw newUnauthorizedError(
+        `Failed to validate session string "${serviceRequest.signedSession}".`,
+        e
+      );
     }
     let session = parseMessage(
-      rawSessionStr,
+      JSON.parse(rawSessionStr),
       this.serviceHandler.sessionDescriptor
     );
     return this.serviceHandler.handle(logContext, serviceRequest, session);
@@ -78,8 +81,8 @@ export async function handleBase(
   serviceHandler: BaseServiceHandler
 ): Promise<void> {
   let randomId = Math.floor(Math.random() * 10000);
-  let logContext = `Request ${Date.now()}-${randomId}:`;
-  console.log(logContext + ` Matched ${req.url} with ${serviceHandler.path}.`);
+  let logContext = `Request ${Date.now()}-${randomId}: `;
+  console.log(logContext + `Path: ${req.url}.`);
 
   // Always allow CORS.
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -93,6 +96,11 @@ export async function handleBase(
   try {
     serviceResponse = await serviceHandler.handle(logContext, req);
   } catch (e) {
+    if (e.stack) {
+      console.error(logContext + e.stack);
+    } else {
+      console.error(logContext + e);
+    }
     if (e.statusCode) {
       res.sendStatus(e.statusCode);
     } else {

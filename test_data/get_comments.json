@@ -1,0 +1,25 @@
+[{
+  "message": {
+    "name": "GetCommentsRequest",
+    "fields": [{
+      "name": "videoId",
+      "type": "string"
+    }]
+  }
+}, {
+  "message": {
+    "name": "GetCommentsResponse",
+    "fields": [{
+      "name": "texts",
+      "type": "string",
+      "isArray": true
+    }]
+  }
+}, {
+  "service": {
+    "name": "GetComments",
+    "path": "/get_comments",
+    "request": "GetCommentsRequest",
+    "response": "GetCommentsResponse"
+  }
+}]
