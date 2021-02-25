@@ -74,7 +74,8 @@ TEST_RUNNER.run({
         // Prepare
         let app = express();
         let server = await createServer(app);
-        let originalRequest: GetCommentsRequest = { videoId: "hahaha" };
+        let request: GetCommentsRequest = { videoId: "hahaha" };
+        let response: GetCommentsResponse = { texts: ["1", "2"] };
 
         class GetCommentsHandler
           implements
@@ -82,14 +83,14 @@ TEST_RUNNER.run({
           public serviceDescriptor = GET_COMMENTS;
           public async handle(
             logContext: string,
-            request: GetCommentsRequest
+            actualRequest: GetCommentsRequest
           ): Promise<GetCommentsResponse> {
             assertThat(
-              request,
-              eqMessage(originalRequest, GET_COMMENTS_REQUEST),
+              actualRequest,
+              eqMessage(request, GET_COMMENTS_REQUEST),
               "GetCommentsRequest"
             );
-            return Promise.resolve({ texts: ["1", "2"] });
+            return Promise.resolve(response);
           }
         }
 
@@ -97,12 +98,12 @@ TEST_RUNNER.run({
         registerUnauthed(app, new GetCommentsHandler());
         let resStream = await postToLocal(
           "/get_comments",
-          JSON.stringify(originalRequest)
+          JSON.stringify(request)
         );
 
         // Verify
         let res = await getStream(resStream);
-        assertThat(res, eq('{"texts":["1","2"]}'), "GetCommentsResponse");
+        assertThat(res, eq(JSON.stringify(response)), "GetCommentsResponse");
 
         // Cleanup
         await closeServer(server);
@@ -114,7 +115,7 @@ TEST_RUNNER.run({
         // Prepare
         let app = express();
         let server = await createServer(app);
-        let originalRequest: GetCommentsRequest = { videoId: "hahaha" };
+        let request: GetCommentsRequest = { videoId: "hahaha" };
 
         class GetCommentsHandler
           implements
@@ -132,7 +133,7 @@ TEST_RUNNER.run({
         registerUnauthed(app, new GetCommentsHandler());
         let resStream = await postToLocal(
           "/get_comments",
-          JSON.stringify(originalRequest)
+          JSON.stringify(request)
         );
 
         // Verify
@@ -152,10 +153,11 @@ TEST_RUNNER.run({
         let server = await createServer(app);
         let sessionBuilder = SessionBuilder.create();
         let mySession: MySession = { sessionId: "id1" };
-        let originalRequest: GetHistoryRequest = {
+        let request: GetHistoryRequest = {
           signedSession: sessionBuilder.build(JSON.stringify(mySession)),
           page: 12,
         };
+        let response: GetHistoryResponse = { videos: ["sss", "aaa"] };
 
         class GetHistoryHandler
           implements
@@ -168,16 +170,16 @@ TEST_RUNNER.run({
           public serviceDescriptor = GET_HISTORY;
           public async handle(
             logContext: string,
-            request: GetHistoryRequest,
+            actualRequest: GetHistoryRequest,
             session: MySession
           ): Promise<GetHistoryResponse> {
             assertThat(session, eqMessage(mySession, MY_SESSION), "MySession");
             assertThat(
-              request,
-              eqMessage(originalRequest, GET_HISTORY_REQUEST),
+              actualRequest,
+              eqMessage(request, GET_HISTORY_REQUEST),
               "GetHistoryRequest"
             );
-            return Promise.resolve({ videos: ["sss", "aaa"] });
+            return Promise.resolve(response);
           }
         }
 
@@ -185,12 +187,12 @@ TEST_RUNNER.run({
         registerAuthed(app, new GetHistoryHandler());
         let resStream = await postToLocal(
           "/get_history",
-          JSON.stringify(originalRequest)
+          JSON.stringify(request)
         );
 
         // Verify
         let res = await getStream(resStream);
-        assertThat(res, eq(`{"videos":["sss","aaa"]}`), "GetHistoryResponse");
+        assertThat(res, eq(JSON.stringify(response)), "GetHistoryResponse");
 
         // Cleanup
         await closeServer(server);
@@ -202,7 +204,7 @@ TEST_RUNNER.run({
         // Prepare
         let app = express();
         let server = await createServer(app);
-        let originalRequest: GetHistoryRequest = {
+        let request: GetHistoryRequest = {
           signedSession: "random stuff",
           page: 12,
         };
@@ -229,11 +231,11 @@ TEST_RUNNER.run({
         registerAuthed(app, new GetHistoryHandler());
         let resStream = await postToLocal(
           "/get_history",
-          JSON.stringify(originalRequest)
+          JSON.stringify(request)
         );
 
         // Verify
-        assertThat(resStream.statusCode, eq(401), 'error code');
+        assertThat(resStream.statusCode, eq(401), "error code");
         let res = await getStream(resStream);
         assertThat(res, eq(`Unauthorized`), "error body");
 
@@ -249,7 +251,7 @@ TEST_RUNNER.run({
         let server = await createServer(app);
         let sessionBuilder = SessionBuilder.create();
         let mySession: MySession = { sessionId: "id1" };
-        let originalRequest: GetHistoryRequest = {
+        let request: GetHistoryRequest = {
           signedSession: sessionBuilder.build(JSON.stringify(mySession)),
           page: 12,
         };
@@ -276,11 +278,11 @@ TEST_RUNNER.run({
         registerAuthed(app, new GetHistoryHandler());
         let resStream = await postToLocal(
           "/get_history",
-          JSON.stringify(originalRequest)
+          JSON.stringify(request)
         );
 
         // Verify
-        assertThat(resStream.statusCode, eq(500), 'error code');
+        assertThat(resStream.statusCode, eq(500), "error code");
         let res = await getStream(resStream);
         assertThat(res, eq(`Internal Server Error`), "error body");
 
