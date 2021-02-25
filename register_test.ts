@@ -1,6 +1,6 @@
 import express = require("express");
-import getStream = require("get-stream");
 import http = require("http");
+import fetch from "node-fetch";
 import { registerAuthed, registerUnauthed } from "./register";
 import {
   AuthedServiceHandler,
@@ -24,6 +24,7 @@ import {
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat, eq } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
+import { Response as FetchResponse } from "node-fetch";
 
 let HOST_NAME = "localhost";
 let PORT = 8000;
@@ -42,26 +43,11 @@ async function closeServer(server: http.Server): Promise<void> {
   });
 }
 
-async function postToLocal(
-  path: string,
-  jsonString: string
-): Promise<http.IncomingMessage> {
-  let reqStream = http.request({
-    hostname: HOST_NAME,
-    port: PORT,
-    path: path,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(jsonString),
-    },
-  });
-  reqStream.write(jsonString);
-  reqStream.end();
-  return await new Promise<http.IncomingMessage>((resolve) => {
-    reqStream.on("response", (resStream) => {
-      resolve(resStream);
-    });
+async function fetchPost(path: string, request: any): Promise<FetchResponse> {
+  return await fetch(`http://${HOST_NAME}:${PORT}${path}`, {
+    method: "post",
+    body: JSON.stringify(request),
+    headers: { "Content-Type": "application/json" },
   });
 }
 
@@ -96,14 +82,14 @@ TEST_RUNNER.run({
 
         // Execute
         registerUnauthed(app, new GetCommentsHandler());
-        let resStream = await postToLocal(
-          "/get_comments",
-          JSON.stringify(request)
-        );
+        let res = await fetchPost("/get_comments", request);
 
         // Verify
-        let res = await getStream(resStream);
-        assertThat(res, eq(JSON.stringify(response)), "GetCommentsResponse");
+        assertThat(
+          await res.text(),
+          eq(JSON.stringify(response)),
+          "GetCommentsResponse"
+        );
 
         // Cleanup
         await closeServer(server);
@@ -131,15 +117,11 @@ TEST_RUNNER.run({
 
         // Execute
         registerUnauthed(app, new GetCommentsHandler());
-        let resStream = await postToLocal(
-          "/get_comments",
-          JSON.stringify(request)
-        );
+        let res = await fetchPost("/get_comments", request);
 
         // Verify
-        assertThat(resStream.statusCode, eq(500), "error code");
-        let res = await getStream(resStream);
-        assertThat(res, eq("Internal Server Error"), "error body");
+        assertThat(res.status, eq(500), "error code");
+        assertThat(await res.text(), eq("Internal Server Error"), "error body");
 
         // Cleanup
         await closeServer(server);
@@ -185,14 +167,14 @@ TEST_RUNNER.run({
 
         // Execute
         registerAuthed(app, new GetHistoryHandler());
-        let resStream = await postToLocal(
-          "/get_history",
-          JSON.stringify(request)
-        );
+        let res = await fetchPost("/get_history", request);
 
         // Verify
-        let res = await getStream(resStream);
-        assertThat(res, eq(JSON.stringify(response)), "GetHistoryResponse");
+        assertThat(
+          await res.text(),
+          eq(JSON.stringify(response)),
+          "GetHistoryResponse"
+        );
 
         // Cleanup
         await closeServer(server);
@@ -229,15 +211,11 @@ TEST_RUNNER.run({
 
         // Execute
         registerAuthed(app, new GetHistoryHandler());
-        let resStream = await postToLocal(
-          "/get_history",
-          JSON.stringify(request)
-        );
+        let res = await fetchPost("/get_history", request);
 
         // Verify
-        assertThat(resStream.statusCode, eq(401), "error code");
-        let res = await getStream(resStream);
-        assertThat(res, eq(`Unauthorized`), "error body");
+        assertThat(res.status, eq(401), "error code");
+        assertThat(await res.text(), eq(`Unauthorized`), "error body");
 
         // Cleanup
         await closeServer(server);
@@ -276,15 +254,11 @@ TEST_RUNNER.run({
 
         // Execute
         registerAuthed(app, new GetHistoryHandler());
-        let resStream = await postToLocal(
-          "/get_history",
-          JSON.stringify(request)
-        );
+        let res = await fetchPost("/get_history", request);
 
         // Verify
-        assertThat(resStream.statusCode, eq(500), "error code");
-        let res = await getStream(resStream);
-        assertThat(res, eq(`Internal Server Error`), "error body");
+        assertThat(res.status, eq(500), "error code");
+        assertThat(await res.text(), eq(`Internal Server Error`), "error body");
 
         // Cleanup
         await closeServer(server);
