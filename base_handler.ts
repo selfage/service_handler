@@ -89,9 +89,6 @@ export async function handleBase(
   res.setHeader("Access-Control-Allow-Methods", "*");
   res.setHeader("Access-Control-Allow-Headers", "*");
 
-  // Inform client-side to cache response.
-  res.vary("Accept-Encoding");
-
   let serviceResponse: any;
   try {
     serviceResponse = await serviceHandler.handle(logContext, req);
