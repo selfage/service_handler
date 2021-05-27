@@ -86,7 +86,7 @@ The following is an exmaple to register the handlers above to `Express.js`. Unde
 
 ```TypeScript
 import express = require('express');
-import { registerUnauthed } from '@selfage/servie_handler/register';
+import { registerUnauthed, registerAuthed } from '@selfage/service_handler/register';
 import { GetCommentsHandler } from './get_comments_handler';
 import { GetHistoryHandler } from './get_history_handler';
 
@@ -114,7 +114,7 @@ Before making any cross-site request, browsers might send a preflight request to
 
 ```TypeScript
 import express = require('express');
-import { registerUnauthed } from '@selfage/servie_handler/preflight_handler';
+import { registerCorsAllowedPreflightHandler } from '@selfage/service_handler/preflight_handler';
 
 let app = express();
 registerCorsAllowedPreflightHandler(app);
