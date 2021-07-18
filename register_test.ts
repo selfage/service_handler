@@ -23,7 +23,7 @@ import {
 } from "./test_data/get_history";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat, eq } from "@selfage/test_matcher";
-import { TEST_RUNNER } from "@selfage/test_runner";
+import { NODE_TEST_RUNNER } from "@selfage/test_runner";
 import { Response as FetchResponse } from "node-fetch";
 
 let HOST_NAME = "localhost";
@@ -51,7 +51,7 @@ async function fetchPost(path: string, request: any): Promise<FetchResponse> {
   });
 }
 
-TEST_RUNNER.run({
+NODE_TEST_RUNNER.run({
   name: "RegisterTest",
   cases: [
     {
