@@ -93,8 +93,9 @@ import { GetHistoryHandler } from './get_history_handler';
 let app = express();
 let register = new HandlerRegister(app);
 // Or pass in an optional logger that implements interface Logger.
-register.registerUnauthed(new GetCommentsHandler());
-register.registerAuthed(new GetHistoryHandler());
+register
+  .registerUnauthed(new GetCommentsHandler())
+  .registerAuthed(new GetHistoryHandler());
 ```
 
 In particular, handlers are wrapped with the following common process.
@@ -116,10 +117,10 @@ Before making any cross-site request, browsers might send a preflight request to
 
 ```TypeScript
 import express = require('express');
-import { registerCorsAllowedPreflightHandler } from '@selfage/service_handler/preflight_handler';
+import { HandlerRegister } from '@selfage/service_handler/handler_register';
 
 let app = express();
-registerCorsAllowedPreflightHandler(app);
+new HandlerRegister(app).registerCorsAllowedPreflightHandler();
 ```
 
 ## Sign a session string

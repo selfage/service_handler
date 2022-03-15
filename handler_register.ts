@@ -36,8 +36,9 @@ export class HandlerRegister {
       ServiceRequest,
       ServiceResponse
     >
-  ): void {
+  ): this {
     this.register(new UnauthedBaseServiceHandler(unauthedServiceHandler));
+    return this;
   }
 
   public registerAuthed<
@@ -50,13 +51,14 @@ export class HandlerRegister {
       ServiceResponse,
       Session
     >
-  ): void {
+  ): this {
     this.register(
       new AuthedBaseServiceHandler(
         authedServiceHandler,
         SessionExtractor.create()
       )
     );
+    return this;
   }
 
   private register(serviceHandler: BaseServiceHandler): void {
@@ -99,5 +101,17 @@ export class HandlerRegister {
       return;
     }
     res.json(serviceResponse);
+  }
+
+  public registerCorsAllowedPreflightHandler(): this {
+    this.app.options("/*", (req, res) => {
+      // Allow all.
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "*");
+      res.setHeader("Access-Control-Allow-Headers", "*");
+
+      res.send("ok");
+    });
+    return this;
   }
 }
