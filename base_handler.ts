@@ -1,4 +1,5 @@
 import express = require("express");
+import { Logger } from "./logger";
 import {
   AuthedServiceHandler,
   UnauthedServiceHandler,
@@ -10,11 +11,16 @@ import { WithSession } from "@selfage/service_descriptor";
 
 export interface BaseServiceHandler {
   path: string;
-  handle: (logContext: string, req: express.Request) => Promise<any>;
+  handle: (
+    req: express.Request,
+    requestId: string,
+    logger: Logger
+  ) => Promise<any>;
 }
 
 export class UnauthedBaseServiceHandler<ServiceRequest, ServiceResponse>
-  implements BaseServiceHandler {
+  implements BaseServiceHandler
+{
   public path = this.serviceHandler.serviceDescriptor.path;
 
   public constructor(
@@ -24,13 +30,18 @@ export class UnauthedBaseServiceHandler<ServiceRequest, ServiceResponse>
     >
   ) {}
 
-  public async handle(logContext: string, req: express.Request): Promise<any> {
+  public async handle(
+    req: express.Request,
+    requestId: string,
+    logger: Logger
+  ): Promise<any> {
     return this.serviceHandler.handle(
-      logContext,
       parseMessage(
         req.body,
         this.serviceHandler.serviceDescriptor.requestDescriptor
-      )
+      ),
+      requestId,
+      logger
     );
   }
 }
@@ -39,7 +50,8 @@ export class AuthedBaseServiceHandler<
   ServiceRequest extends WithSession,
   ServiceResponse,
   Session
-> implements BaseServiceHandler {
+> implements BaseServiceHandler
+{
   public path = this.serviceHandler.serviceDescriptor.path;
 
   public constructor(
@@ -51,7 +63,11 @@ export class AuthedBaseServiceHandler<
     private sessionExtractor: SessionExtractor
   ) {}
 
-  public async handle(logContext: string, req: express.Request): Promise<any> {
+  public async handle(
+    req: express.Request,
+    requestId: string,
+    logger: Logger
+  ): Promise<any> {
     let serviceRequest = parseMessage(
       req.body,
       this.serviceHandler.serviceDescriptor.requestDescriptor
@@ -71,39 +87,11 @@ export class AuthedBaseServiceHandler<
       JSON.parse(rawSessionStr),
       this.serviceHandler.sessionDescriptor
     );
-    return this.serviceHandler.handle(logContext, serviceRequest, session);
+    return this.serviceHandler.handle(
+      serviceRequest,
+      session,
+      requestId,
+      logger
+    );
   }
-}
-
-export async function handleBase(
-  req: express.Request,
-  res: express.Response,
-  serviceHandler: BaseServiceHandler
-): Promise<void> {
-  let randomId = Math.floor(Math.random() * 10000);
-  let logContext = `Request ${Date.now()}-${randomId}: `;
-  console.log(logContext + `Path: ${req.url}.`);
-
-  // Always allow CORS.
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "*");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-
-  let serviceResponse: any;
-  try {
-    serviceResponse = await serviceHandler.handle(logContext, req);
-  } catch (e) {
-    if (e.stack) {
-      console.error(logContext + e.stack);
-    } else {
-      console.error(logContext + e);
-    }
-    if (e.statusCode) {
-      res.sendStatus(e.statusCode);
-    } else {
-      res.sendStatus(500);
-    }
-    return;
-  }
-  res.json(serviceResponse);
 }

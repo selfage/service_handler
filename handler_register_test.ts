@@ -1,7 +1,7 @@
 import express = require("express");
 import http = require("http");
 import fetch from "node-fetch";
-import { registerAuthed, registerUnauthed } from "./register";
+import { HandlerRegister } from "./handler_register";
 import {
   AuthedServiceHandler,
   UnauthedServiceHandler,
@@ -65,10 +65,10 @@ NODE_TEST_RUNNER.run({
 
         class GetCommentsHandler
           implements
-            UnauthedServiceHandler<GetCommentsRequest, GetCommentsResponse> {
+            UnauthedServiceHandler<GetCommentsRequest, GetCommentsResponse>
+        {
           public serviceDescriptor = GET_COMMENTS;
           public async handle(
-            logContext: string,
             actualRequest: GetCommentsRequest
           ): Promise<GetCommentsResponse> {
             assertThat(
@@ -81,7 +81,7 @@ NODE_TEST_RUNNER.run({
         }
 
         // Execute
-        registerUnauthed(app, new GetCommentsHandler());
+        new HandlerRegister(app).registerUnauthed(new GetCommentsHandler());
         let res = await fetchPost("/get_comments", request);
 
         // Verify
@@ -105,10 +105,10 @@ NODE_TEST_RUNNER.run({
 
         class GetCommentsHandler
           implements
-            UnauthedServiceHandler<GetCommentsRequest, GetCommentsResponse> {
+            UnauthedServiceHandler<GetCommentsRequest, GetCommentsResponse>
+        {
           public serviceDescriptor = GET_COMMENTS;
           public async handle(
-            logContext: string,
             request: GetCommentsRequest
           ): Promise<GetCommentsResponse> {
             throw new Error("Something wrong");
@@ -116,7 +116,7 @@ NODE_TEST_RUNNER.run({
         }
 
         // Execute
-        registerUnauthed(app, new GetCommentsHandler());
+        new HandlerRegister(app).registerUnauthed(new GetCommentsHandler());
         let res = await fetchPost("/get_comments", request);
 
         // Verify
@@ -147,11 +147,11 @@ NODE_TEST_RUNNER.run({
               GetHistoryRequest,
               GetHistoryResponse,
               MySession
-            > {
+            >
+        {
           public sessionDescriptor = MY_SESSION;
           public serviceDescriptor = GET_HISTORY;
           public async handle(
-            logContext: string,
             actualRequest: GetHistoryRequest,
             session: MySession
           ): Promise<GetHistoryResponse> {
@@ -166,7 +166,7 @@ NODE_TEST_RUNNER.run({
         }
 
         // Execute
-        registerAuthed(app, new GetHistoryHandler());
+        new HandlerRegister(app).registerAuthed(new GetHistoryHandler());
         let res = await fetchPost("/get_history", request);
 
         // Verify
@@ -197,11 +197,11 @@ NODE_TEST_RUNNER.run({
               GetHistoryRequest,
               GetHistoryResponse,
               MySession
-            > {
+            >
+        {
           public sessionDescriptor = MY_SESSION;
           public serviceDescriptor = GET_HISTORY;
           public async handle(
-            logContext: string,
             request: GetHistoryRequest,
             session: MySession
           ): Promise<GetHistoryResponse> {
@@ -210,7 +210,7 @@ NODE_TEST_RUNNER.run({
         }
 
         // Execute
-        registerAuthed(app, new GetHistoryHandler());
+        new HandlerRegister(app).registerAuthed(new GetHistoryHandler());
         let res = await fetchPost("/get_history", request);
 
         // Verify
@@ -240,11 +240,11 @@ NODE_TEST_RUNNER.run({
               GetHistoryRequest,
               GetHistoryResponse,
               MySession
-            > {
+            >
+        {
           public sessionDescriptor = MY_SESSION;
           public serviceDescriptor = GET_HISTORY;
           public async handle(
-            logContext: string,
             request: GetHistoryRequest,
             session: MySession
           ): Promise<GetHistoryResponse> {
@@ -253,7 +253,7 @@ NODE_TEST_RUNNER.run({
         }
 
         // Execute
-        registerAuthed(app, new GetHistoryHandler());
+        new HandlerRegister(app).registerAuthed(new GetHistoryHandler());
         let res = await fetchPost("/get_history", request);
 
         // Verify

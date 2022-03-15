@@ -26,6 +26,7 @@
     "!test_data/**/*"
   ],
   "devDependencies": {
+    "@selfage/cli": "^2.6.0",
     "@selfage/test_matcher": "^1.0.3",
     "@selfage/test_runner": "^2.0.1",
     "@selfage/tsconfig": "^1.0.3",
