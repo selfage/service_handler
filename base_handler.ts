@@ -1,5 +1,4 @@
 import express = require("express");
-import { Logger } from "./logger";
 import {
   AuthedServiceHandler,
   UnauthedServiceHandler,
@@ -11,11 +10,7 @@ import { WithSession } from "@selfage/service_descriptor";
 
 export interface BaseServiceHandler {
   path: string;
-  handle: (
-    req: express.Request,
-    requestId: string,
-    logger: Logger
-  ) => Promise<any>;
+  handle: (req: express.Request, requestId: string) => Promise<any>;
 }
 
 export class UnauthedBaseServiceHandler<ServiceRequest, ServiceResponse>
@@ -30,18 +25,13 @@ export class UnauthedBaseServiceHandler<ServiceRequest, ServiceResponse>
     >
   ) {}
 
-  public async handle(
-    req: express.Request,
-    requestId: string,
-    logger: Logger
-  ): Promise<any> {
+  public async handle(req: express.Request, requestId: string): Promise<any> {
     return this.serviceHandler.handle(
       parseMessage(
         req.body,
         this.serviceHandler.serviceDescriptor.requestDescriptor
       ),
-      requestId,
-      logger
+      requestId
     );
   }
 }
@@ -63,11 +53,7 @@ export class AuthedBaseServiceHandler<
     private sessionExtractor: SessionExtractor
   ) {}
 
-  public async handle(
-    req: express.Request,
-    requestId: string,
-    logger: Logger
-  ): Promise<any> {
+  public async handle(req: express.Request, requestId: string): Promise<any> {
     let serviceRequest = parseMessage(
       req.body,
       this.serviceHandler.serviceDescriptor.requestDescriptor
@@ -87,11 +73,6 @@ export class AuthedBaseServiceHandler<
       JSON.parse(rawSessionStr),
       this.serviceHandler.sessionDescriptor
     );
-    return this.serviceHandler.handle(
-      serviceRequest,
-      session,
-      requestId,
-      logger
-    );
+    return this.serviceHandler.handle(serviceRequest, session, requestId);
   }
 }

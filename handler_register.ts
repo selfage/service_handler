@@ -4,13 +4,26 @@ import {
   BaseServiceHandler,
   UnauthedBaseServiceHandler,
 } from "./base_handler";
-import { ConsoleLogger, Logger } from "./logger";
 import {
   AuthedServiceHandler,
   UnauthedServiceHandler,
 } from "./service_handler";
 import { SessionExtractor } from "./session_signer";
 import { WithSession } from "@selfage/service_descriptor";
+
+export interface Logger {
+  info(str: string): void;
+  error(str: string): void;
+}
+
+export class ConsoleLogger {
+  public info(str: string): void {
+    console.info(str);
+  }
+  public error(str: string): void {
+    console.error(str);
+  }
+}
 
 export class HandlerRegister {
   public constructor(
@@ -71,11 +84,7 @@ export class HandlerRegister {
 
     let serviceResponse: any;
     try {
-      serviceResponse = await serviceHandler.handle(
-        req,
-        requestId,
-        this.logger
-      );
+      serviceResponse = await serviceHandler.handle(req, requestId);
     } catch (e) {
       if (e.stack) {
         this.logger.error(`Request ${requestId}: ${e.stack}`);

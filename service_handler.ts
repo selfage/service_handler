@@ -1,4 +1,3 @@
-import { Logger } from "./logger";
 import { MessageDescriptor } from "@selfage/message/descriptor";
 import {
   AuthedServiceDescriptor,
@@ -10,8 +9,7 @@ export interface UnauthedServiceHandler<ServiceRequest, ServiceResponse> {
   serviceDescriptor: UnauthedServiceDescriptor<ServiceRequest, ServiceResponse>;
   handle: (
     request: ServiceRequest,
-    requestId: string,
-    logger: Logger
+    requestId: string
   ) => Promise<ServiceResponse>;
 }
 
@@ -25,7 +23,6 @@ export interface AuthedServiceHandler<
   handle: (
     request: ServiceRequest,
     session: Session,
-    requestId: string,
-    logger: Logger
+    requestId: string
   ) => Promise<ServiceResponse>;
 }
