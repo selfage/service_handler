@@ -74,7 +74,7 @@ export class HandlerRegister {
     res: express.Response,
     serviceHandler: BaseServiceHandler
   ): Promise<void> {
-    let requestId = `${Date.now() / 1000000}-${Math.floor(
+    let requestId = `${Math.floor(Date.now() / 1000)}-${Math.floor(
       Math.random() * 10000
     )}`;
     this.logger.info(`Request ${requestId}: ${req.url}.`);
