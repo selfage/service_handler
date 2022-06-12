@@ -94,13 +94,13 @@ export class HandlerRegister {
         this.logger.error(`Request ${requestId}: ${e}`);
       }
       if (e.statusCode) {
-        res.sendStatus(e.statusCode);
+        res.sendStatus(e.statusCode).end();
       } else {
-        res.sendStatus(500);
+        res.sendStatus(500).end();
       }
       return;
     }
-    res.json(serviceResponse);
+    res.json(serviceResponse).end();
   }
 
   public registerCorsAllowedPreflightHandler(): this {
