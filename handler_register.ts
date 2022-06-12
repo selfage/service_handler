@@ -110,7 +110,7 @@ export class HandlerRegister {
       res.setHeader("Access-Control-Allow-Methods", "*");
       res.setHeader("Access-Control-Allow-Headers", "*");
 
-      res.send("ok");
+      res.send("ok").end();
     });
     return this;
   }
