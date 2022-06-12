@@ -94,13 +94,13 @@ export class HandlerRegister {
         this.logger.error(`Request ${requestId}: ${e}`);
       }
       if (e.statusCode) {
-        res.sendStatus(e.statusCode).end();
+        res.sendStatus(e.statusCode);
       } else {
-        res.sendStatus(500).end();
+        res.sendStatus(500);
       }
       return;
     }
-    res.json(serviceResponse).end();
+    res.json(serviceResponse);
   }
 
   public registerCorsAllowedPreflightHandler(): this {
@@ -110,7 +110,7 @@ export class HandlerRegister {
       res.setHeader("Access-Control-Allow-Methods", "*");
       res.setHeader("Access-Control-Allow-Headers", "*");
 
-      res.send("ok").end();
+      res.send("ok");
     });
     return this;
   }
