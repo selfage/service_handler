@@ -3,6 +3,7 @@ import {
   SessionExtractor,
   SessionSigner,
 } from "./session_signer";
+import { newUnauthorizedError } from "@selfage/http_error";
 import { assertThat, assertThrow, eq, eqError } from "@selfage/test_matcher";
 import { NODE_TEST_RUNNER } from "@selfage/test_runner";
 
@@ -41,7 +42,11 @@ NODE_TEST_RUNNER.run({
         let error = assertThrow(() => extractor.extract(signedSession));
 
         // Verify
-        assertThat(error, eqError(new Error("expired")), "expired error");
+        assertThat(
+          error,
+          eqError(newUnauthorizedError("expired")),
+          "expired error"
+        );
       },
     },
     {
@@ -54,7 +59,11 @@ NODE_TEST_RUNNER.run({
         let error = assertThrow(() => extractor.extract(undefined));
 
         // Verify
-        assertThat(error, eqError(new Error("Missing")), "missing error");
+        assertThat(
+          error,
+          eqError(newUnauthorizedError("is not a string")),
+          "missing error"
+        );
       },
     },
     {
@@ -70,7 +79,7 @@ NODE_TEST_RUNNER.run({
         // Verify
         assertThat(
           error,
-          eqError(new Error("Invalid signed session")),
+          eqError(newUnauthorizedError("Invalid signed session")),
           "malformatted error"
         );
       },
@@ -88,7 +97,11 @@ NODE_TEST_RUNNER.run({
         );
 
         // Verify
-        assertThat(error, eqError(new Error("signature")), "signature error");
+        assertThat(
+          error,
+          eqError(newUnauthorizedError("signature")),
+          "signature error"
+        );
       },
     },
   ],

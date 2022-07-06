@@ -1,73 +1,80 @@
-import { MessageDescriptor, PrimitiveType } from '@selfage/message/descriptor';
-import { AuthedServiceDescriptor } from '@selfage/service_descriptor';
+import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
+import { ServiceDescriptor, ServiceHandler } from "@selfage/service_descriptor";
 
 export interface MySession {
-  sessionId?: string,
-  userId?: string,
+  sessionId?: string;
+  userId?: string;
 }
 
 export let MY_SESSION: MessageDescriptor<MySession> = {
-  name: 'MySession',
-  factoryFn: () => {
-    return new Object();
-  },
+  name: "MySession",
   fields: [
     {
-      name: 'sessionId',
+      name: "sessionId",
       primitiveType: PrimitiveType.STRING,
     },
     {
-      name: 'userId',
+      name: "userId",
       primitiveType: PrimitiveType.STRING,
     },
-  ]
+  ],
 };
 
-export interface GetHistoryRequest {
-  signedSession?: string,
-  page?: number,
+export interface GetHistoryRequestBody {
+  page?: number;
 }
 
-export let GET_HISTORY_REQUEST: MessageDescriptor<GetHistoryRequest> = {
-  name: 'GetHistoryRequest',
-  factoryFn: () => {
-    return new Object();
-  },
-  fields: [
-    {
-      name: 'signedSession',
-      primitiveType: PrimitiveType.STRING,
-    },
-    {
-      name: 'page',
-      primitiveType: PrimitiveType.NUMBER,
-    },
-  ]
-};
+export let GET_HISTORY_REQUEST_BODY: MessageDescriptor<GetHistoryRequestBody> =
+  {
+    name: "GetHistoryRequestBody",
+    fields: [
+      {
+        name: "page",
+        primitiveType: PrimitiveType.NUMBER,
+      },
+    ],
+  };
 
 export interface GetHistoryResponse {
-  videos?: Array<string>,
+  videos?: Array<string>;
 }
 
 export let GET_HISTORY_RESPONSE: MessageDescriptor<GetHistoryResponse> = {
-  name: 'GetHistoryResponse',
-  factoryFn: () => {
-    return new Object();
-  },
+  name: "GetHistoryResponse",
   fields: [
     {
-      name: 'videos',
+      name: "videos",
       primitiveType: PrimitiveType.STRING,
-      arrayFactoryFn: () => {
-        return new Array<any>();
-      },
+      isArray: true,
     },
-  ]
+  ],
 };
 
-export let GET_HISTORY: AuthedServiceDescriptor<GetHistoryRequest, GetHistoryResponse> = {
+export let GET_HISTORY: ServiceDescriptor = {
   name: "GetHistory",
-  path: "/get_history",
-  requestDescriptor: GET_HISTORY_REQUEST,
-  responseDescriptor: GET_HISTORY_RESPONSE,
+  path: "/GetHistory",
+  signedUserSession: {
+    key: "u",
+    type: MY_SESSION,
+  },
+  body: {
+    messageType: GET_HISTORY_REQUEST_BODY,
+  },
+  response: {
+    messageType: GET_HISTORY_RESPONSE,
+  },
 };
+
+export interface GetHistoryHandlerRequest {
+  userSession?: MySession;
+  body?: GetHistoryRequestBody;
+}
+
+export abstract class GetHistoryHandlerInterface
+  implements ServiceHandler<GetHistoryHandlerRequest, GetHistoryResponse>
+{
+  public descriptor = GET_HISTORY;
+  public abstract handle(
+    args: GetHistoryHandlerRequest
+  ): Promise<GetHistoryResponse>;
+}

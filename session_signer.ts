@@ -1,4 +1,5 @@
 import crypto = require("crypto");
+import { newUnauthorizedError } from "@selfage/http_error";
 
 function millisecondsToSeconds(milli: number): number {
   return Math.floor(milli / 1000);
@@ -43,14 +44,16 @@ export class SessionExtractor {
     return new SessionExtractor(new SessionSigner());
   }
 
-  public extract(signedSession?: string): string {
-    if (!signedSession) {
-      throw Error("Missing a signed session input.");
+  public extract(signedSession: any): string {
+    if (typeof signedSession !== "string") {
+      throw newUnauthorizedError(
+        `signedSession is not a string, but it's ${signedSession}.`
+      );
     }
 
     let pieces = signedSession.split("|");
     if (pieces.length !== 3) {
-      throw Error("Invalid signed session string.");
+      throw newUnauthorizedError("Invalid signed session string.");
     }
     let plainSessionStr = pieces[0];
     let timestamp = Number.parseInt(pieces[1], 36);
@@ -58,13 +61,13 @@ export class SessionExtractor {
 
     let signatureExpected = this.sessionSigner.sign(plainSessionStr, timestamp);
     if (signature !== signatureExpected) {
-      throw Error("Invalid session signature");
+      throw newUnauthorizedError("Invalid session signature");
     }
     if (
       millisecondsToSeconds(Date.now()) - timestamp >
       SessionExtractor.SESSION_LONGEVITY
     ) {
-      throw Error("Session expired.");
+      throw newUnauthorizedError("Session expired.");
     }
     return plainSessionStr;
   }
