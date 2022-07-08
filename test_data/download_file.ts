@@ -33,6 +33,7 @@ export let DOWNLOAD_FILE: ServiceDescriptor = {
 };
 
 export interface DownloadFileHandlerRequest {
+  requestId: string;
   body?: DownloadFileRequestBody;
 }
 

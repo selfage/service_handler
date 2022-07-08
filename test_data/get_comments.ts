@@ -43,6 +43,7 @@ export let GET_COMMENTS: ServiceDescriptor = {
 };
 
 export interface GetCommentsHandlerRequest {
+  requestId: string;
   body?: GetCommentsRequestBody;
 }
 

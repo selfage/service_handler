@@ -66,6 +66,7 @@ export let GET_HISTORY: ServiceDescriptor = {
 };
 
 export interface GetHistoryHandlerRequest {
+  requestId: string;
   userSession?: MySession;
   body?: GetHistoryRequestBody;
 }

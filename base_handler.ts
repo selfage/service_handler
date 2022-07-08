@@ -3,7 +3,10 @@ import getStream = require("get-stream");
 import stream = require("stream");
 import util = require("util");
 import { SessionExtractor } from "./session_signer";
-import { newInternalServerErrorError } from "@selfage/http_error";
+import {
+  newBadRequestError,
+  newInternalServerErrorError,
+} from "@selfage/http_error";
 import { parseMessage } from "@selfage/message/parser";
 import { BytesEncoding, ServiceHandler } from "@selfage/service_descriptor";
 let pipeline = util.promisify(stream.pipeline);
@@ -117,10 +120,9 @@ export class BaseServiceHandler<HandlerRequest, HandlerResponse> {
     try {
       return JSON.parse(value);
     } catch (e) {
-      this.logger.warn(
+      throw newBadRequestError(
         `Request ${requestId}: Unable to parse ${what}. Raw json string: ${value}.`
       );
-      return undefined;
     }
   }
 
