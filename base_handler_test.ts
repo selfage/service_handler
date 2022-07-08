@@ -46,12 +46,14 @@ import { NODE_TEST_RUNNER, TestCase } from "@selfage/test_runner";
 let HOST_NAME = "localhost";
 let PORT = 8000;
 
-async function createServer(app: express.Express): Promise<http.Server> {
+async function createServer(): Promise<[http.Server, HandlerRegister]> {
+  let app = express();
+  let register = new HandlerRegister(app);
   let server = http.createServer(app);
   await new Promise<void>((resolve) => {
     server.listen({ host: HOST_NAME, port: PORT }, () => resolve());
   });
-  return server;
+  return [server, register];
 }
 
 async function closeServer(server?: http.Server): Promise<void> {
@@ -80,9 +82,8 @@ NODE_TEST_RUNNER.run({
               return { texts: ["aaaa", "bbb", "cc"] };
             }
           })();
-        let app = express();
-        let register = new HandlerRegister(app);
-        this.server = await createServer(app);
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
 
         // Execute
         register.register(getCommentHandler);
@@ -111,6 +112,39 @@ NODE_TEST_RUNNER.run({
       }
     })(),
     new (class implements TestCase {
+      public name = "GetCommentsNoRequestBody";
+      private server: http.Server;
+      public async execute() {
+        // Prepare
+        let getCommentHandler: GetCommentsHandlerInterface =
+          new (class extends GetCommentsHandlerInterface {
+            public async handle(
+              args: GetCommentsHandlerRequest
+            ): Promise<GetCommentsResponse> {
+              throw new Error("Should not be reachable.");
+            }
+          })();
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
+
+        // Execute
+        register.register(getCommentHandler);
+        let response = await nodeFetch(
+          `http://${HOST_NAME}:${PORT}/GetComments`,
+          {
+            method: "post",
+            body: "",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+        // Verify
+        assertThat(response.status, eq(400), "status code");
+      }
+      public async tearDown() {
+        closeServer(this.server);
+      }
+    })(),
+    new (class implements TestCase {
       public name = "GetHistory";
       private server: http.Server;
       public async execute() {
@@ -127,9 +161,8 @@ NODE_TEST_RUNNER.run({
               return { videos: ["id1", "id2", "id3"] };
             }
           })();
-        let app = express();
-        let register = new HandlerRegister(app);
-        this.server = await createServer(app);
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
 
         let searchParam = new URLSearchParams();
         searchParam.set(
@@ -174,6 +207,40 @@ NODE_TEST_RUNNER.run({
       }
     })(),
     new (class implements TestCase {
+      public name = "GetHistoryNoSession";
+      private server: http.Server;
+      public async execute() {
+        // Prepare
+        let getHistoryHandler: GetHistoryHandlerInterface =
+          new (class extends GetHistoryHandlerInterface {
+            public async handle(
+              args: GetHistoryHandlerRequest
+            ): Promise<GetHistoryResponse> {
+              throw new Error("Should not be reachable.");
+            }
+          })();
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
+
+        // Execute
+        register.register(getHistoryHandler);
+        let response = await nodeFetch(
+          `http://${HOST_NAME}:${PORT}/GetHistory`,
+          {
+            method: "post",
+            body: JSON.stringify({ page: 10 }),
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        // Verify
+        assertThat(response.status, eq(401), "status code");
+      }
+      public async tearDown() {
+        closeServer(this.server);
+      }
+    })(),
+    new (class implements TestCase {
       public name = "UploadFile";
       private server: http.Server;
       public async execute() {
@@ -190,9 +257,8 @@ NODE_TEST_RUNNER.run({
               return { byteSize: 121, success: true };
             }
           })();
-        let app = express();
-        let register = new HandlerRegister(app);
-        this.server = await createServer(app);
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
 
         let searchParam = new URLSearchParams();
         searchParam.set("sd", JSON.stringify({ fileName: "file1" }));
@@ -230,6 +296,42 @@ NODE_TEST_RUNNER.run({
       }
     })(),
     new (class implements TestCase {
+      public name = "UploadFileNoRequestSide";
+      private server: http.Server;
+      public async execute() {
+        // Prepare
+        let uploadFileHandler: UploadFileHandlerInterface =
+          new (class extends UploadFileHandlerInterface {
+            public async handle(
+              args: UploadFileHandlerRequest
+            ): Promise<UploadFileResponse> {
+              throw new Error("Should not be reachable.");
+            }
+          })();
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
+
+        // Execute
+        register.register(uploadFileHandler);
+        let response = await nodeFetch(
+          `http://${HOST_NAME}:${PORT}/UploadFile`,
+          {
+            method: "post",
+            body: fs.createReadStream(
+              path.join(__dirname, "test_data", "text.txt")
+            ),
+            headers: { "Content-Type": "application/octet-stream" },
+          }
+        );
+
+        // Verify
+        assertThat(response.status, eq(400), "status code");
+      }
+      public async tearDown() {
+        closeServer(this.server);
+      }
+    })(),
+    new (class implements TestCase {
       public name = "DownloadFile";
       private server: http.Server;
       public async execute() {
@@ -246,9 +348,8 @@ NODE_TEST_RUNNER.run({
               );
             }
           })();
-        let app = express();
-        let register = new HandlerRegister(app);
-        this.server = await createServer(app);
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
 
         // Execute
         register.register(downloadFileHandler);

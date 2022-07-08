@@ -34,7 +34,7 @@ export let DOWNLOAD_FILE: ServiceDescriptor = {
 
 export interface DownloadFileHandlerRequest {
   requestId: string;
-  body?: DownloadFileRequestBody;
+  body: DownloadFileRequestBody;
 }
 
 export abstract class DownloadFileHandlerInterface

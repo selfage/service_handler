@@ -57,8 +57,8 @@ export let UPLOAD_FILE: ServiceDescriptor = {
 
 export interface UploadFileHandlerRequest {
   requestId: string;
-  side?: UploadFileRequestSide;
-  body?: stream.Readable;
+  side: UploadFileRequestSide;
+  body: stream.Readable;
 }
 
 export abstract class UploadFileHandlerInterface

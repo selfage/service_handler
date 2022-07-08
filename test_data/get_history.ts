@@ -67,8 +67,8 @@ export let GET_HISTORY: ServiceDescriptor = {
 
 export interface GetHistoryHandlerRequest {
   requestId: string;
-  userSession?: MySession;
-  body?: GetHistoryRequestBody;
+  userSession: MySession;
+  body: GetHistoryRequestBody;
 }
 
 export abstract class GetHistoryHandlerInterface
