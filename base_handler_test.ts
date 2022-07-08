@@ -45,6 +45,7 @@ import { NODE_TEST_RUNNER, TestCase } from "@selfage/test_runner";
 
 let HOST_NAME = "localhost";
 let PORT = 8000;
+let ORIGIN = `http://${HOST_NAME}:${PORT}`;
 
 async function createServer(): Promise<[http.Server, HandlerRegister]> {
   let app = express();
@@ -88,7 +89,7 @@ NODE_TEST_RUNNER.run({
         // Execute
         register.register(getCommentHandler);
         let response = await (
-          await nodeFetch(`http://${HOST_NAME}:${PORT}/GetComments`, {
+          await nodeFetch(`${ORIGIN}/GetComments`, {
             method: "post",
             body: JSON.stringify({ videoId: "idx" }),
             headers: { "Content-Type": "application/json" },
@@ -129,14 +130,11 @@ NODE_TEST_RUNNER.run({
 
         // Execute
         register.register(getCommentHandler);
-        let response = await nodeFetch(
-          `http://${HOST_NAME}:${PORT}/GetComments`,
-          {
-            method: "post",
-            body: "",
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        let response = await nodeFetch(`${ORIGIN}/GetComments`, {
+          method: "post",
+          body: "",
+          headers: { "Content-Type": "application/json" },
+        });
         // Verify
         assertThat(response.status, eq(400), "status code");
       }
@@ -175,14 +173,11 @@ NODE_TEST_RUNNER.run({
         // Execute
         register.register(getHistoryHandler);
         let response = await (
-          await nodeFetch(
-            `http://${HOST_NAME}:${PORT}/GetHistory?${searchParam}`,
-            {
-              method: "post",
-              body: JSON.stringify({ page: 10 }),
-              headers: { "Content-Type": "application/json" },
-            }
-          )
+          await nodeFetch(`${ORIGIN}/GetHistory?${searchParam}`, {
+            method: "post",
+            body: JSON.stringify({ page: 10 }),
+            headers: { "Content-Type": "application/json" },
+          })
         ).json();
 
         // Verify
@@ -224,14 +219,11 @@ NODE_TEST_RUNNER.run({
 
         // Execute
         register.register(getHistoryHandler);
-        let response = await nodeFetch(
-          `http://${HOST_NAME}:${PORT}/GetHistory`,
-          {
-            method: "post",
-            body: JSON.stringify({ page: 10 }),
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        let response = await nodeFetch(`${ORIGIN}/GetHistory`, {
+          method: "post",
+          body: JSON.stringify({ page: 10 }),
+          headers: { "Content-Type": "application/json" },
+        });
 
         // Verify
         assertThat(response.status, eq(401), "status code");
@@ -266,16 +258,13 @@ NODE_TEST_RUNNER.run({
         // Execute
         register.register(uploadFileHandler);
         let response = await (
-          await nodeFetch(
-            `http://${HOST_NAME}:${PORT}/UploadFile?${searchParam}`,
-            {
-              method: "post",
-              body: fs.createReadStream(
-                path.join(__dirname, "test_data", "text.txt")
-              ),
-              headers: { "Content-Type": "application/octet-stream" },
-            }
-          )
+          await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
+            method: "post",
+            body: fs.createReadStream(
+              path.join(__dirname, "test_data", "text.txt")
+            ),
+            headers: { "Content-Type": "application/octet-stream" },
+          })
         ).json();
 
         // Verify
@@ -313,16 +302,13 @@ NODE_TEST_RUNNER.run({
 
         // Execute
         register.register(uploadFileHandler);
-        let response = await nodeFetch(
-          `http://${HOST_NAME}:${PORT}/UploadFile`,
-          {
-            method: "post",
-            body: fs.createReadStream(
-              path.join(__dirname, "test_data", "text.txt")
-            ),
-            headers: { "Content-Type": "application/octet-stream" },
-          }
-        );
+        let response = await nodeFetch(`${ORIGIN}/UploadFile`, {
+          method: "post",
+          body: fs.createReadStream(
+            path.join(__dirname, "test_data", "text.txt")
+          ),
+          headers: { "Content-Type": "application/octet-stream" },
+        });
 
         // Verify
         assertThat(response.status, eq(400), "status code");
@@ -354,7 +340,7 @@ NODE_TEST_RUNNER.run({
         // Execute
         register.register(downloadFileHandler);
         let response = await (
-          await nodeFetch(`http://${HOST_NAME}:${PORT}/DownloadFile`, {
+          await nodeFetch(`${ORIGIN}/DownloadFile`, {
             method: "post",
             body: JSON.stringify({ fileName: "file2" }),
             headers: { "Content-Type": "application/json" },
