@@ -1,15 +1,15 @@
 import express = require("express");
 import getStream = require("get-stream");
-import stream = require("stream");
-import util = require("util");
 import { SessionExtractor } from "./session_signer";
 import {
   newBadRequestError,
   newInternalServerErrorError,
 } from "@selfage/http_error";
 import { parseMessage } from "@selfage/message/parser";
-import { BytesEncoding, ServiceHandler } from "@selfage/service_descriptor";
-let pipeline = util.promisify(stream.pipeline);
+import {
+  PrimitveTypeForBody,
+  ServiceHandler,
+} from "@selfage/service_descriptor";
 
 export interface Logger {
   info(str: string): void;
@@ -53,7 +53,7 @@ export class BaseServiceHandler<HandlerRequest, HandlerResponse> {
     try {
       let handlerRequest = await this.parseRequest(req, requestId);
       let handlerResponse = await this.serviceHandler.handle(handlerRequest);
-      await this.sendResponse(res, handlerResponse, requestId);
+      await this.sendResponse(res, handlerResponse);
     } catch (e) {
       if (e.stack) {
         this.logger.error(`Request ${requestId}: ${e.stack}`);
@@ -94,25 +94,26 @@ export class BaseServiceHandler<HandlerRequest, HandlerResponse> {
         this.serviceHandler.descriptor.side.type
       );
     }
-    if (this.serviceHandler.descriptor.body) {
-      if (this.serviceHandler.descriptor.body.messageType) {
-        let bodyStr = (
-          await getStream.buffer(req, {
-            maxBuffer: 1 * 1024 * 1024,
-          })
-        ).toString("utf8");
-        handlerRequest.body = parseMessage(
-          this.parseJson(bodyStr, requestId, `body`),
-          this.serviceHandler.descriptor.body.messageType
-        );
-      } else if (
-        this.serviceHandler.descriptor.body.bytesType === BytesEncoding.BYTES
-      ) {
-        handlerRequest.body = req;
-      } else {
-        throw newInternalServerErrorError(`Unsupported server request body.`);
-      }
+
+    if (this.serviceHandler.descriptor.body.messageType) {
+      let bodyStr = (
+        await getStream.buffer(req, {
+          maxBuffer: 1 * 1024 * 1024,
+        })
+      ).toString("utf8");
+      handlerRequest.body = parseMessage(
+        this.parseJson(bodyStr, requestId, `body`),
+        this.serviceHandler.descriptor.body.messageType
+      );
+    } else if (
+      this.serviceHandler.descriptor.body.primitiveType ===
+      PrimitveTypeForBody.BYTES
+    ) {
+      handlerRequest.body = req;
+    } else {
+      throw newInternalServerErrorError(`Unsupported server request body.`);
     }
+
     return handlerRequest;
   }
 
@@ -128,34 +129,8 @@ export class BaseServiceHandler<HandlerRequest, HandlerResponse> {
 
   private async sendResponse(
     res: express.Response,
-    handlerResponse: any,
-    requestId: string
+    handlerResponse: any
   ): Promise<void> {
-    if (!this.serviceHandler.descriptor.response) {
-      res.end();
-      return;
-    }
-
-    if (this.serviceHandler.descriptor.response.messageType) {
-      res.json(handlerResponse);
-    } else if (
-      this.serviceHandler.descriptor.response.bytesType === BytesEncoding.BYTES
-    ) {
-      try {
-        await pipeline(handlerResponse, res);
-      } catch (e) {
-        if (e.stack) {
-          this.logger.error(
-            `Request ${requestId}: Failed to stream response: ${e.stack}`
-          );
-        } else {
-          this.logger.error(
-            `Request ${requestId}: Failed to stream response: ${e}`
-          );
-        }
-      }
-    } else {
-      throw newInternalServerErrorError(`Unsupported server response.`);
-    }
+    res.json(handlerResponse);
   }
 }

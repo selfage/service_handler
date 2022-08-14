@@ -3,16 +3,9 @@ import fs = require("fs");
 import getStream = require("get-stream");
 import http = require("http");
 import path = require("path");
-import stream = require("stream");
 import nodeFetch from "node-fetch";
 import { HandlerRegister } from "./register";
 import { SessionBuilder } from "./session_signer";
-import {
-  DOWNLOAD_FILE_REQUEST_BODY,
-  DownloadFileHandlerInterface,
-  DownloadFileHandlerRequest,
-  DownloadFileRequestBody,
-} from "./test_data/download_file";
 import {
   GET_COMMENTS_REQUEST_BODY,
   GET_COMMENTS_RESPONSE,
@@ -41,7 +34,7 @@ import {
 } from "./test_data/upload_file";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat, eq } from "@selfage/test_matcher";
-import { NODE_TEST_RUNNER, TestCase } from "@selfage/test_runner";
+import { TEST_RUNNER, TestCase } from "@selfage/test_runner";
 
 let HOST_NAME = "localhost";
 let PORT = 8000;
@@ -65,7 +58,7 @@ async function closeServer(server?: http.Server): Promise<void> {
   }
 }
 
-NODE_TEST_RUNNER.run({
+TEST_RUNNER.run({
   name: "BaseHandlerTest",
   cases: [
     new (class implements TestCase {
@@ -312,48 +305,6 @@ NODE_TEST_RUNNER.run({
 
         // Verify
         assertThat(response.status, eq(400), "status code");
-      }
-      public async tearDown() {
-        closeServer(this.server);
-      }
-    })(),
-    new (class implements TestCase {
-      public name = "DownloadFile";
-      private server: http.Server;
-      public async execute() {
-        // Prepare
-        let body: DownloadFileRequestBody;
-        let downloadFileHandler: DownloadFileHandlerInterface =
-          new (class extends DownloadFileHandlerInterface {
-            public async handle(
-              args: DownloadFileHandlerRequest
-            ): Promise<stream.Readable> {
-              body = args.body;
-              return fs.createReadStream(
-                path.join(__dirname, "test_data", "text.txt")
-              );
-            }
-          })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
-
-        // Execute
-        register.register(downloadFileHandler);
-        let response = await (
-          await nodeFetch(`${ORIGIN}/DownloadFile`, {
-            method: "post",
-            body: JSON.stringify({ fileName: "file2" }),
-            headers: { "Content-Type": "application/json" },
-          })
-        ).text();
-
-        // Verify
-        assertThat(
-          body,
-          eqMessage({ fileName: "file2" }, DOWNLOAD_FILE_REQUEST_BODY),
-          "request body"
-        );
-        assertThat(response, eq("some random bytes"), "response");
       }
       public async tearDown() {
         closeServer(this.server);

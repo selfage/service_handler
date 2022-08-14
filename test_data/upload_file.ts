@@ -1,9 +1,9 @@
 import stream = require("stream");
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import {
-  BytesEncoding,
   ServiceDescriptor,
   ServiceHandler,
+  PrimitveTypeForBody,
 } from "@selfage/service_descriptor";
 
 export interface UploadFileRequestSide {
@@ -48,7 +48,7 @@ export let UPLOAD_FILE: ServiceDescriptor = {
     type: UPLOAD_FILE_REQUEST_SIDE,
   },
   body: {
-    bytesType: BytesEncoding.BYTES,
+    primitiveType: PrimitveTypeForBody.BYTES
   },
   response: {
     messageType: UPLOAD_FILE_RESPONSE,

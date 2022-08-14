@@ -5,9 +5,9 @@ import {
 } from "./session_signer";
 import { newUnauthorizedError } from "@selfage/http_error";
 import { assertThat, assertThrow, eq, eqError } from "@selfage/test_matcher";
-import { NODE_TEST_RUNNER } from "@selfage/test_runner";
+import { TEST_RUNNER } from "@selfage/test_runner";
 
-NODE_TEST_RUNNER.run({
+TEST_RUNNER.run({
   name: "SessionSignerTest",
   cases: [
     {
