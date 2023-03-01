@@ -6,10 +6,8 @@ import {
   newInternalServerErrorError,
 } from "@selfage/http_error";
 import { parseMessage } from "@selfage/message/parser";
-import {
-  PrimitveTypeForBody,
-  ServiceHandler,
-} from "@selfage/service_descriptor";
+import { PrimitveTypeForBody } from "@selfage/service_descriptor";
+import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
 
 export interface Logger {
   info(str: string): void;
@@ -29,9 +27,9 @@ export class ConsoleLogger {
   }
 }
 
-export class BaseServiceHandler<HandlerRequest, HandlerResponse> {
+export class BaseServiceHandler {
   public constructor(
-    private serviceHandler: ServiceHandler<HandlerRequest, HandlerResponse>,
+    private serviceHandler: ServiceHandlerInterface,
     private sessionExtractor: SessionExtractor,
     private logger: Logger
   ) {}
@@ -51,9 +49,8 @@ export class BaseServiceHandler<HandlerRequest, HandlerResponse> {
     this.logger.info(`Request ${requestId}: ${req.url}.`);
 
     try {
-      let handlerRequest = await this.parseRequest(req, requestId);
-      let handlerResponse = await this.serviceHandler.handle(handlerRequest);
-      await this.sendResponse(res, handlerResponse);
+      let response = await this.handleRequest(req, requestId);
+      await this.sendResponse(res, response);
     } catch (e) {
       if (e.stack) {
         this.logger.error(`Request ${requestId}: ${e.stack}`);
@@ -68,53 +65,57 @@ export class BaseServiceHandler<HandlerRequest, HandlerResponse> {
     }
   }
 
-  private async parseRequest(
+  private async handleRequest(
     req: express.Request,
     requestId: string
   ): Promise<any> {
-    let handlerRequest: any = {
-      requestId,
-    };
-    if (this.serviceHandler.descriptor.signedUserSession) {
-      let sessionStr = this.sessionExtractor.extract(
-        req.query[this.serviceHandler.descriptor.signedUserSession.key]
-      );
-      handlerRequest.userSession = parseMessage(
-        this.parseJson(sessionStr, requestId, `user session`),
-        this.serviceHandler.descriptor.signedUserSession.type
-      );
-    }
-    if (this.serviceHandler.descriptor.side) {
-      handlerRequest.side = parseMessage(
-        this.parseJson(
-          req.query[this.serviceHandler.descriptor.side.key],
-          requestId,
-          `side message`
-        ),
-        this.serviceHandler.descriptor.side.type
-      );
-    }
-
+    let args: any[] = [requestId];
     if (this.serviceHandler.descriptor.body.messageType) {
       let bodyStr = (
         await getStream.buffer(req, {
           maxBuffer: 1 * 1024 * 1024,
         })
       ).toString("utf8");
-      handlerRequest.body = parseMessage(
-        this.parseJson(bodyStr, requestId, `body`),
-        this.serviceHandler.descriptor.body.messageType
+      args.push(
+        parseMessage(
+          this.parseJson(bodyStr, requestId, `body`),
+          this.serviceHandler.descriptor.body.messageType
+        )
       );
     } else if (
       this.serviceHandler.descriptor.body.primitiveType ===
       PrimitveTypeForBody.BYTES
     ) {
-      handlerRequest.body = req;
+      args.push(req);
     } else {
       throw newInternalServerErrorError(`Unsupported server request body.`);
     }
 
-    return handlerRequest;
+    if (this.serviceHandler.descriptor.metadata) {
+      args.push(
+        parseMessage(
+          this.parseJson(
+            req.query[this.serviceHandler.descriptor.metadata.key],
+            requestId,
+            `metadata`
+          ),
+          this.serviceHandler.descriptor.metadata.type
+        )
+      );
+    }
+
+    if (this.serviceHandler.descriptor.auth) {
+      let authStr = this.sessionExtractor.extract(
+        req.header(this.serviceHandler.descriptor.auth.key)
+      );
+      args.push(
+        parseMessage(
+          this.parseJson(authStr, requestId, `auth`),
+          this.serviceHandler.descriptor.auth.type
+        )
+      );
+    }
+    return this.serviceHandler.handle(...args);
   }
 
   private parseJson(value: any, requestId: string, what: string): any {

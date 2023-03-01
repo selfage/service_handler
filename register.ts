@@ -2,7 +2,7 @@ import express = require("express");
 import { BaseServiceHandler, ConsoleLogger, Logger } from "./base_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
 import { SessionExtractor } from "./session_signer";
-import { ServiceHandler } from "@selfage/service_descriptor";
+import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
 
 export class HandlerRegister {
   public constructor(
@@ -10,15 +10,15 @@ export class HandlerRegister {
     private logger: Logger = new ConsoleLogger()
   ) {}
 
-  public register<HandlerRequest, HandlerResponse>(
-    serviceHandler: ServiceHandler<HandlerRequest, HandlerResponse>
-  ): this {
+  public register(serviceHandler: ServiceHandlerInterface): this {
     let handler = new BaseServiceHandler(
       serviceHandler,
       SessionExtractor.create(),
       this.logger
     );
-    this.app.post(serviceHandler.descriptor.path, (req, res) => handler.handle(req, res));
+    this.app.post(serviceHandler.descriptor.path, (req, res) =>
+      handler.handle(req, res)
+    );
     return this;
   }
 

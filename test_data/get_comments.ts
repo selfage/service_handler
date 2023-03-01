@@ -1,5 +1,6 @@
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
-import { ServiceDescriptor, ServiceHandler } from "@selfage/service_descriptor";
+import { ServiceDescriptor } from "@selfage/service_descriptor";
+import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
 
 export interface GetCommentsRequestBody {
   videoId?: string;
@@ -42,16 +43,12 @@ export let GET_COMMENTS: ServiceDescriptor = {
   },
 };
 
-export interface GetCommentsHandlerRequest {
-  requestId: string;
-  body: GetCommentsRequestBody;
-}
-
 export abstract class GetCommentsHandlerInterface
-  implements ServiceHandler<GetCommentsHandlerRequest, GetCommentsResponse>
+  implements ServiceHandlerInterface
 {
   public descriptor = GET_COMMENTS;
   public abstract handle(
-    args: GetCommentsHandlerRequest
+    requestId: string,
+    body: GetCommentsRequestBody
   ): Promise<GetCommentsResponse>;
 }

@@ -3,6 +3,7 @@ import fs = require("fs");
 import getStream = require("get-stream");
 import http = require("http");
 import path = require("path");
+import stream = require("stream");
 import nodeFetch from "node-fetch";
 import { HandlerRegister } from "./register";
 import { SessionBuilder } from "./session_signer";
@@ -10,7 +11,6 @@ import {
   GET_COMMENTS_REQUEST_BODY,
   GET_COMMENTS_RESPONSE,
   GetCommentsHandlerInterface,
-  GetCommentsHandlerRequest,
   GetCommentsRequestBody,
   GetCommentsResponse,
 } from "./test_data/get_comments";
@@ -18,18 +18,16 @@ import {
   GET_HISTORY_REQUEST_BODY,
   GET_HISTORY_RESPONSE,
   GetHistoryHandlerInterface,
-  GetHistoryHandlerRequest,
   GetHistoryRequestBody,
   GetHistoryResponse,
   MY_SESSION,
   MySession,
 } from "./test_data/get_history";
 import {
-  UPLOAD_FILE_REQUEST_SIDE,
+  UPLOAD_FILE_REQUEST_METADATA,
   UPLOAD_FILE_RESPONSE,
   UploadFileHandlerInterface,
-  UploadFileHandlerRequest,
-  UploadFileRequestSide,
+  UploadFileRequestMetadata,
   UploadFileResponse,
 } from "./test_data/upload_file";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -66,13 +64,14 @@ TEST_RUNNER.run({
       private server: http.Server;
       public async execute() {
         // Prepare
-        let body: GetCommentsRequestBody;
+        let capturedBody: GetCommentsRequestBody;
         let getCommentHandler: GetCommentsHandlerInterface =
           new (class extends GetCommentsHandlerInterface {
             public async handle(
-              args: GetCommentsHandlerRequest
+              requestId: string,
+              body: GetCommentsRequestBody
             ): Promise<GetCommentsResponse> {
-              body = args.body;
+              capturedBody = body;
               return { texts: ["aaaa", "bbb", "cc"] };
             }
           })();
@@ -91,7 +90,7 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          body,
+          capturedBody,
           eqMessage({ videoId: "idx" }, GET_COMMENTS_REQUEST_BODY),
           "request body"
         );
@@ -113,7 +112,8 @@ TEST_RUNNER.run({
         let getCommentHandler: GetCommentsHandlerInterface =
           new (class extends GetCommentsHandlerInterface {
             public async handle(
-              args: GetCommentsHandlerRequest
+              requestId: string,
+              body: GetCommentsRequestBody
             ): Promise<GetCommentsResponse> {
               throw new Error("Should not be reachable.");
             }
@@ -141,35 +141,34 @@ TEST_RUNNER.run({
       public async execute() {
         // Prepare
         let session: MySession;
-        let body: GetHistoryRequestBody;
+        let capturedBody: GetHistoryRequestBody;
         let getHistoryHandler: GetHistoryHandlerInterface =
           new (class extends GetHistoryHandlerInterface {
             public async handle(
-              args: GetHistoryHandlerRequest
+              requestId: string,
+              body: GetHistoryRequestBody,
+              auth: MySession
             ): Promise<GetHistoryResponse> {
-              session = args.userSession;
-              body = args.body;
+              session = auth;
+              capturedBody = body;
               return { videos: ["id1", "id2", "id3"] };
             }
           })();
         let register: HandlerRegister;
         [this.server, register] = await createServer();
 
-        let searchParam = new URLSearchParams();
-        searchParam.set(
-          "u",
-          SessionBuilder.create().build(
-            JSON.stringify({ sessionId: "ses1", userId: "u1" })
-          )
-        );
-
         // Execute
         register.register(getHistoryHandler);
         let response = await (
-          await nodeFetch(`${ORIGIN}/GetHistory?${searchParam}`, {
+          await nodeFetch(`${ORIGIN}/GetHistory`, {
             method: "post",
             body: JSON.stringify({ page: 10 }),
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              u: SessionBuilder.create().build(
+                JSON.stringify({ sessionId: "ses1", userId: "u1" })
+              ),
+            },
           })
         ).json();
 
@@ -180,7 +179,7 @@ TEST_RUNNER.run({
           "user session"
         );
         assertThat(
-          body,
+          capturedBody,
           eqMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
           "request body"
         );
@@ -202,7 +201,9 @@ TEST_RUNNER.run({
         let getHistoryHandler: GetHistoryHandlerInterface =
           new (class extends GetHistoryHandlerInterface {
             public async handle(
-              args: GetHistoryHandlerRequest
+              requestId: string,
+              body: GetHistoryRequestBody,
+              auth: MySession
             ): Promise<GetHistoryResponse> {
               throw new Error("Should not be reachable.");
             }
@@ -231,14 +232,16 @@ TEST_RUNNER.run({
       public async execute() {
         // Prepare
         let bodyAsString: string;
-        let side: UploadFileRequestSide;
+        let capturedMetadata: UploadFileRequestMetadata;
         let uploadFileHandler: UploadFileHandlerInterface =
           new (class extends UploadFileHandlerInterface {
             public async handle(
-              args: UploadFileHandlerRequest
+              requestId: string,
+              body: stream.Readable,
+              metadata: UploadFileRequestMetadata
             ): Promise<UploadFileResponse> {
-              side = args.side;
-              bodyAsString = await getStream(args.body);
+              capturedMetadata = metadata;
+              bodyAsString = await getStream(body);
               return { byteSize: 121, success: true };
             }
           })();
@@ -262,9 +265,9 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          side,
-          eqMessage({ fileName: "file1" }, UPLOAD_FILE_REQUEST_SIDE),
-          "request side"
+          capturedMetadata,
+          eqMessage({ fileName: "file1" }, UPLOAD_FILE_REQUEST_METADATA),
+          "request metadata"
         );
         assertThat(bodyAsString, eq("some random bytes"), "request body");
         assertThat(
@@ -278,14 +281,16 @@ TEST_RUNNER.run({
       }
     })(),
     new (class implements TestCase {
-      public name = "UploadFileNoRequestSide";
+      public name = "UploadFileNoRequestMetadata";
       private server: http.Server;
       public async execute() {
         // Prepare
         let uploadFileHandler: UploadFileHandlerInterface =
           new (class extends UploadFileHandlerInterface {
             public async handle(
-              args: UploadFileHandlerRequest
+              requestId: string,
+              body: stream.Readable,
+              metadata: UploadFileRequestMetadata
             ): Promise<UploadFileResponse> {
               throw new Error("Should not be reachable.");
             }

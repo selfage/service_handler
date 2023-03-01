@@ -1,5 +1,6 @@
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
-import { ServiceDescriptor, ServiceHandler } from "@selfage/service_descriptor";
+import { ServiceDescriptor } from "@selfage/service_descriptor";
+import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
 
 export interface MySession {
   sessionId?: string;
@@ -53,7 +54,7 @@ export let GET_HISTORY_RESPONSE: MessageDescriptor<GetHistoryResponse> = {
 export let GET_HISTORY: ServiceDescriptor = {
   name: "GetHistory",
   path: "/GetHistory",
-  signedUserSession: {
+  auth: {
     key: "u",
     type: MY_SESSION,
   },
@@ -65,17 +66,13 @@ export let GET_HISTORY: ServiceDescriptor = {
   },
 };
 
-export interface GetHistoryHandlerRequest {
-  requestId: string;
-  userSession: MySession;
-  body: GetHistoryRequestBody;
-}
-
 export abstract class GetHistoryHandlerInterface
-  implements ServiceHandler<GetHistoryHandlerRequest, GetHistoryResponse>
+  implements ServiceHandlerInterface
 {
   public descriptor = GET_HISTORY;
   public abstract handle(
-    args: GetHistoryHandlerRequest
+    requestId: string,
+    body: GetHistoryRequestBody,
+    auth: MySession
   ): Promise<GetHistoryResponse>;
 }

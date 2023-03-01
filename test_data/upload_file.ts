@@ -1,18 +1,18 @@
 import stream = require("stream");
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import {
-  ServiceDescriptor,
-  ServiceHandler,
   PrimitveTypeForBody,
+  ServiceDescriptor,
 } from "@selfage/service_descriptor";
+import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
 
-export interface UploadFileRequestSide {
+export interface UploadFileRequestMetadata {
   fileName: string;
 }
 
-export let UPLOAD_FILE_REQUEST_SIDE: MessageDescriptor<UploadFileRequestSide> =
+export let UPLOAD_FILE_REQUEST_METADATA: MessageDescriptor<UploadFileRequestMetadata> =
   {
-    name: "UploadFileRequestSide",
+    name: "UploadFileRequestMetadata",
     fields: [
       {
         name: "fileName",
@@ -43,29 +43,25 @@ export let UPLOAD_FILE_RESPONSE: MessageDescriptor<UploadFileResponse> = {
 export let UPLOAD_FILE: ServiceDescriptor = {
   name: "UploadFile",
   path: "/UploadFile",
-  side: {
+  metadata: {
     key: "sd",
-    type: UPLOAD_FILE_REQUEST_SIDE,
+    type: UPLOAD_FILE_REQUEST_METADATA,
   },
   body: {
-    primitiveType: PrimitveTypeForBody.BYTES
+    primitiveType: PrimitveTypeForBody.BYTES,
   },
   response: {
     messageType: UPLOAD_FILE_RESPONSE,
   },
 };
 
-export interface UploadFileHandlerRequest {
-  requestId: string;
-  side: UploadFileRequestSide;
-  body: stream.Readable;
-}
-
 export abstract class UploadFileHandlerInterface
-  implements ServiceHandler<UploadFileHandlerRequest, UploadFileResponse>
+  implements ServiceHandlerInterface
 {
   public descriptor = UPLOAD_FILE;
   public abstract handle(
-    args: UploadFileHandlerRequest
+    requestId: string,
+    body: stream.Readable,
+    metadata: UploadFileRequestMetadata
   ): Promise<UploadFileResponse>;
 }
