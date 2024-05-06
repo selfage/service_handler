@@ -22,7 +22,7 @@ export class HandlerRegister {
     return this;
   }
 
-  public registerCorsAllowedPrelightHandler(): this {
+  public registerCorsAllowedPreflightHandler(): this {
     let handler = new CorsAllowedPreflightHandler();
     this.app.options("/*", (req, res) => handler.handle(res));
     return this;
