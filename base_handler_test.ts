@@ -128,6 +128,7 @@ TEST_RUNNER.run({
           body: "",
           headers: { "Content-Type": "application/json" },
         });
+
         // Verify
         assertThat(response.status, eq(400), "status code");
       }

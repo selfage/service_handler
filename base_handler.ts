@@ -46,16 +46,17 @@ export class BaseServiceHandler {
     let requestId = `${Math.floor(Date.now() / 1000)}-${Math.floor(
       Math.random() * 10000
     )}`;
-    this.logger.info(`Request ${requestId}: ${req.url}.`);
+    let loggingPrefix = `Request ${requestId}:`;
+    this.logger.info(`${loggingPrefix} ${req.url}.`);
 
     try {
-      let response = await this.handleRequest(req, requestId);
+      let response = await this.handleRequest(req, loggingPrefix);
       await this.sendResponse(res, response);
     } catch (e) {
       if (e.stack) {
-        this.logger.error(`Request ${requestId}: ${e.stack}`);
+        this.logger.error(`${loggingPrefix} ${e.stack}`);
       } else {
-        this.logger.error(`Request ${requestId}: ${e}`);
+        this.logger.error(`${loggingPrefix} ${e}`);
       }
       if (e.statusCode) {
         res.sendStatus(e.statusCode);
@@ -67,9 +68,9 @@ export class BaseServiceHandler {
 
   private async handleRequest(
     req: express.Request,
-    requestId: string
+    loggingPrefix: string
   ): Promise<any> {
-    let args: any[] = [requestId];
+    let args: any[] = [loggingPrefix];
     if (this.serviceHandler.descriptor.body.messageType) {
       let bodyStr = (
         await getStream.buffer(req, {
@@ -78,7 +79,7 @@ export class BaseServiceHandler {
       ).toString("utf8");
       args.push(
         parseMessage(
-          this.parseJson(bodyStr, requestId, `body`),
+          this.parseJson(bodyStr, loggingPrefix, `body`),
           this.serviceHandler.descriptor.body.messageType
         )
       );
@@ -96,7 +97,7 @@ export class BaseServiceHandler {
         parseMessage(
           this.parseJson(
             req.query[this.serviceHandler.descriptor.metadata.key],
-            requestId,
+            loggingPrefix,
             `metadata`
           ),
           this.serviceHandler.descriptor.metadata.type
@@ -110,7 +111,7 @@ export class BaseServiceHandler {
       );
       args.push(
         parseMessage(
-          this.parseJson(authStr, requestId, `auth`),
+          this.parseJson(authStr, loggingPrefix, `auth`),
           this.serviceHandler.descriptor.auth.type
         )
       );
@@ -118,12 +119,12 @@ export class BaseServiceHandler {
     return this.serviceHandler.handle(...args);
   }
 
-  private parseJson(value: any, requestId: string, what: string): any {
+  private parseJson(value: any, loggingPrefix: string, what: string): any {
     try {
       return JSON.parse(value);
     } catch (e) {
       throw newBadRequestError(
-        `Request ${requestId}: Unable to parse ${what}. Raw json string: ${value}.`
+        `${loggingPrefix} Unable to parse ${what}. Raw json string: ${value}.`
       );
     }
   }
