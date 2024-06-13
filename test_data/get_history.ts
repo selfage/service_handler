@@ -73,6 +73,6 @@ export abstract class GetHistoryHandlerInterface
   public abstract handle(
     requestId: string,
     body: GetHistoryRequestBody,
-    auth: MySession
+    auth: MySession,
   ): Promise<GetHistoryResponse>;
 }

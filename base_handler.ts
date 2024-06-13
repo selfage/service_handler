@@ -1,6 +1,7 @@
 import express = require("express");
 import getStream = require("get-stream");
 import { SessionExtractor } from "./session_signer";
+import { StreamMessageReader } from "./stream_message_reader";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -31,12 +32,12 @@ export class BaseServiceHandler {
   public constructor(
     private serviceHandler: ServiceHandlerInterface,
     private sessionExtractor: SessionExtractor,
-    private logger: Logger
+    private logger: Logger,
   ) {}
 
   public async handle(
     req: express.Request,
-    res: express.Response
+    res: express.Response,
   ): Promise<void> {
     // Always allow CORS.
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -44,7 +45,7 @@ export class BaseServiceHandler {
     res.setHeader("Access-Control-Allow-Headers", "*");
 
     let requestId = `${Math.floor(Date.now() / 1000)}-${Math.floor(
-      Math.random() * 10000
+      Math.random() * 10000,
     )}`;
     let loggingPrefix = `Request ${requestId}:`;
     this.logger.info(`${loggingPrefix} ${req.url}.`);
@@ -68,7 +69,7 @@ export class BaseServiceHandler {
 
   private async handleRequest(
     req: express.Request,
-    loggingPrefix: string
+    loggingPrefix: string,
   ): Promise<any> {
     let args: any[] = [loggingPrefix];
     if (this.serviceHandler.descriptor.body.messageType) {
@@ -80,9 +81,15 @@ export class BaseServiceHandler {
       args.push(
         parseMessage(
           this.parseJson(bodyStr, loggingPrefix, `body`),
-          this.serviceHandler.descriptor.body.messageType
-        )
+          this.serviceHandler.descriptor.body.messageType,
+        ),
       );
+    } else if (this.serviceHandler.descriptor.body.streamMessageType) {
+      let streamReader = new StreamMessageReader(
+        req,
+        this.serviceHandler.descriptor.body.streamMessageType,
+      );
+      args.push(streamReader);
     } else if (
       this.serviceHandler.descriptor.body.primitiveType ===
       PrimitveTypeForBody.BYTES
@@ -98,22 +105,22 @@ export class BaseServiceHandler {
           this.parseJson(
             req.query[this.serviceHandler.descriptor.metadata.key],
             loggingPrefix,
-            `metadata`
+            `metadata`,
           ),
-          this.serviceHandler.descriptor.metadata.type
-        )
+          this.serviceHandler.descriptor.metadata.type,
+        ),
       );
     }
 
     if (this.serviceHandler.descriptor.auth) {
       let authStr = this.sessionExtractor.extract(
-        req.header(this.serviceHandler.descriptor.auth.key)
+        req.header(this.serviceHandler.descriptor.auth.key),
       );
       args.push(
         parseMessage(
           this.parseJson(authStr, loggingPrefix, `auth`),
-          this.serviceHandler.descriptor.auth.type
-        )
+          this.serviceHandler.descriptor.auth.type,
+        ),
       );
     }
     return this.serviceHandler.handle(...args);
@@ -124,14 +131,14 @@ export class BaseServiceHandler {
       return JSON.parse(value);
     } catch (e) {
       throw newBadRequestError(
-        `${loggingPrefix} Unable to parse ${what}. Raw json string: ${value}.`
+        `${loggingPrefix} Unable to parse ${what}. Raw json string: ${value}.`,
       );
     }
   }
 
   private async sendResponse(
     res: express.Response,
-    handlerResponse: any
+    handlerResponse: any,
   ): Promise<void> {
     res.json(handlerResponse);
   }

@@ -7,6 +7,7 @@ import stream = require("stream");
 import nodeFetch from "node-fetch";
 import { HandlerRegister } from "./register";
 import { SessionBuilder } from "./session_signer";
+import { StreamMessageReader } from "./stream_message_reader";
 import {
   GET_COMMENTS_REQUEST_BODY,
   GET_COMMENTS_RESPONSE,
@@ -24,6 +25,14 @@ import {
   MySession,
 } from "./test_data/get_history";
 import {
+  HEART_BEAT_RESPONSE,
+  HEART_BEAT_STREAM_REQUEST_BODY,
+  HeartBeatHandlerInterface,
+  HeartBeatRequestMetadata,
+  HeartBeatResponse,
+  HeartBeatStreamRequestBody,
+} from "./test_data/heart_beat";
+import {
   UPLOAD_FILE_REQUEST_METADATA,
   UPLOAD_FILE_RESPONSE,
   UploadFileHandlerInterface,
@@ -31,7 +40,7 @@ import {
   UploadFileResponse,
 } from "./test_data/upload_file";
 import { eqMessage } from "@selfage/message/test_matcher";
-import { assertThat, eq } from "@selfage/test_matcher";
+import { assertThat, eq, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER, TestCase } from "@selfage/test_runner";
 
 let HOST_NAME = "localhost";
@@ -69,7 +78,7 @@ TEST_RUNNER.run({
           new (class extends GetCommentsHandlerInterface {
             public async handle(
               requestId: string,
-              body: GetCommentsRequestBody
+              body: GetCommentsRequestBody,
             ): Promise<GetCommentsResponse> {
               capturedBody = body;
               return { texts: ["aaaa", "bbb", "cc"] };
@@ -92,12 +101,12 @@ TEST_RUNNER.run({
         assertThat(
           capturedBody,
           eqMessage({ videoId: "idx" }, GET_COMMENTS_REQUEST_BODY),
-          "request body"
+          "request body",
         );
         assertThat(
           response,
           eqMessage({ texts: ["aaaa", "bbb", "cc"] }, GET_COMMENTS_RESPONSE),
-          "response"
+          "response",
         );
       }
       public async tearDown() {
@@ -113,7 +122,7 @@ TEST_RUNNER.run({
           new (class extends GetCommentsHandlerInterface {
             public async handle(
               requestId: string,
-              body: GetCommentsRequestBody
+              body: GetCommentsRequestBody,
             ): Promise<GetCommentsResponse> {
               throw new Error("Should not be reachable.");
             }
@@ -148,7 +157,7 @@ TEST_RUNNER.run({
             public async handle(
               requestId: string,
               body: GetHistoryRequestBody,
-              auth: MySession
+              auth: MySession,
             ): Promise<GetHistoryResponse> {
               session = auth;
               capturedBody = body;
@@ -167,7 +176,7 @@ TEST_RUNNER.run({
             headers: {
               "Content-Type": "application/json",
               u: SessionBuilder.create().build(
-                JSON.stringify({ sessionId: "ses1", userId: "u1" })
+                JSON.stringify({ sessionId: "ses1", userId: "u1" }),
               ),
             },
           })
@@ -177,17 +186,17 @@ TEST_RUNNER.run({
         assertThat(
           session,
           eqMessage({ sessionId: "ses1", userId: "u1" }, MY_SESSION),
-          "user session"
+          "user session",
         );
         assertThat(
           capturedBody,
           eqMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
-          "request body"
+          "request body",
         );
         assertThat(
           response,
           eqMessage({ videos: ["id1", "id2", "id3"] }, GET_HISTORY_RESPONSE),
-          "response"
+          "response",
         );
       }
       public async tearDown() {
@@ -204,7 +213,7 @@ TEST_RUNNER.run({
             public async handle(
               requestId: string,
               body: GetHistoryRequestBody,
-              auth: MySession
+              auth: MySession,
             ): Promise<GetHistoryResponse> {
               throw new Error("Should not be reachable.");
             }
@@ -239,7 +248,7 @@ TEST_RUNNER.run({
             public async handle(
               requestId: string,
               body: stream.Readable,
-              metadata: UploadFileRequestMetadata
+              metadata: UploadFileRequestMetadata,
             ): Promise<UploadFileResponse> {
               capturedMetadata = metadata;
               bodyAsString = await getStream(body);
@@ -258,7 +267,7 @@ TEST_RUNNER.run({
           await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
             method: "post",
             body: fs.createReadStream(
-              path.join(__dirname, "test_data", "text.txt")
+              path.join(__dirname, "test_data", "text.txt"),
             ),
             headers: { "Content-Type": "application/octet-stream" },
           })
@@ -268,13 +277,13 @@ TEST_RUNNER.run({
         assertThat(
           capturedMetadata,
           eqMessage({ fileName: "file1" }, UPLOAD_FILE_REQUEST_METADATA),
-          "request metadata"
+          "request metadata",
         );
         assertThat(bodyAsString, eq("some random bytes"), "request body");
         assertThat(
           response,
           eqMessage({ byteSize: 121, success: true }, UPLOAD_FILE_RESPONSE),
-          "response"
+          "response",
         );
       }
       public async tearDown() {
@@ -291,7 +300,7 @@ TEST_RUNNER.run({
             public async handle(
               requestId: string,
               body: stream.Readable,
-              metadata: UploadFileRequestMetadata
+              metadata: UploadFileRequestMetadata,
             ): Promise<UploadFileResponse> {
               throw new Error("Should not be reachable.");
             }
@@ -304,13 +313,81 @@ TEST_RUNNER.run({
         let response = await nodeFetch(`${ORIGIN}/UploadFile`, {
           method: "post",
           body: fs.createReadStream(
-            path.join(__dirname, "test_data", "text.txt")
+            path.join(__dirname, "test_data", "text.txt"),
           ),
           headers: { "Content-Type": "application/octet-stream" },
         });
 
         // Verify
         assertThat(response.status, eq(400), "status code");
+      }
+      public async tearDown() {
+        closeServer(this.server);
+      }
+    })(),
+    new (class implements TestCase {
+      public name = "HeartBeat";
+      private server: http.Server;
+      public async execute() {
+        // Prepare
+        let messageBodies = new Array<HeartBeatStreamRequestBody>();
+        let heartBeatHandler: HeartBeatHandlerInterface =
+          new (class extends HeartBeatHandlerInterface {
+            public async handle(
+              requestId: string,
+              body: StreamMessageReader<HeartBeatStreamRequestBody>,
+              metadata: HeartBeatRequestMetadata,
+            ): Promise<HeartBeatResponse> {
+              body.on("data", (messageBody) => messageBodies.push(messageBody));
+              body.start();
+              await new Promise<void>((resolve) => body.on("end", resolve));
+              return {};
+            }
+          })();
+        let register: HandlerRegister;
+        [this.server, register] = await createServer();
+
+        let searchParam = new URLSearchParams();
+        searchParam.set("sd", JSON.stringify({ userId: "user1" }));
+
+        // Execute
+        register.register(heartBeatHandler);
+        let response = await (
+          await nodeFetch(`${ORIGIN}/HeartBeat?${searchParam}`, {
+            method: "post",
+            body: fs.createReadStream(
+              path.join(__dirname, "test_data", "heartbeat_stream_data.txt"),
+            ),
+            headers: { "Content-Type": "application/octet-stream" },
+          })
+        ).json();
+
+        // Verify
+        assertThat(
+          messageBodies,
+          isArray([
+            eqMessage(
+              {
+                rnd: 1,
+              },
+              HEART_BEAT_STREAM_REQUEST_BODY,
+            ),
+            eqMessage(
+              {
+                rnd: 2,
+              },
+              HEART_BEAT_STREAM_REQUEST_BODY,
+            ),
+            eqMessage(
+              {
+                rnd: 3,
+              },
+              HEART_BEAT_STREAM_REQUEST_BODY,
+            ),
+          ]),
+          "collected messages",
+        );
+        assertThat(response, eqMessage({}, HEART_BEAT_RESPONSE), "response");
       }
       public async tearDown() {
         closeServer(this.server);

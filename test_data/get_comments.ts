@@ -49,6 +49,6 @@ export abstract class GetCommentsHandlerInterface
   public descriptor = GET_COMMENTS;
   public abstract handle(
     requestId: string,
-    body: GetCommentsRequestBody
+    body: GetCommentsRequestBody,
   ): Promise<GetCommentsResponse>;
 }

@@ -62,6 +62,6 @@ export abstract class UploadFileHandlerInterface
   public abstract handle(
     requestId: string,
     body: stream.Readable,
-    metadata: UploadFileRequestMetadata
+    metadata: UploadFileRequestMetadata,
   ): Promise<UploadFileResponse>;
 }
