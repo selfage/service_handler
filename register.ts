@@ -6,7 +6,7 @@ import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_han
 
 export class HandlerRegister {
   public constructor(
-    private app: express.Express,
+    private router: express.Router,
     private logger: Logger = new ConsoleLogger()
   ) {}
 
@@ -16,7 +16,7 @@ export class HandlerRegister {
       SessionExtractor.create(),
       this.logger
     );
-    this.app.post(serviceHandler.descriptor.path, (req, res) =>
+    this.router.post(serviceHandler.descriptor.path, (req, res) =>
       handler.handle(req, res)
     );
     return this;
@@ -24,7 +24,7 @@ export class HandlerRegister {
 
   public registerCorsAllowedPreflightHandler(): this {
     let handler = new CorsAllowedPreflightHandler();
-    this.app.options("/*", (req, res) => handler.handle(res));
+    this.router.options("/*", (req, res) => handler.handle(res));
     return this;
   }
 }
