@@ -131,15 +131,11 @@ export class BaseRemoteCallHandler {
     }
 
     if (remoteCallHandler.descriptor.auth) {
-      let authStr = this.sessionExtractor.extract(
-        req.header(remoteCallHandler.descriptor.auth.key),
-      );
       args.push(
-        this.destringify(
-          authStr,
+        this.sessionExtractor.extract(
+          req.header(remoteCallHandler.descriptor.auth.key),
           remoteCallHandler.descriptor.auth.type,
           loggingPrefix,
-          `auth`,
         ),
       );
     }

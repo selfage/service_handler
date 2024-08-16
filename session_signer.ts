@@ -1,5 +1,10 @@
 import crypto = require("crypto");
-import { newUnauthorizedError } from "@selfage/http_error";
+import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
+import { MessageDescriptor } from "@selfage/message/descriptor";
+import {
+  destringifyMessage,
+  stringifyMessage,
+} from "@selfage/message/stringifier";
 
 function millisecondsToSeconds(milli: number): number {
   return Math.floor(milli / 1000);
@@ -9,10 +14,10 @@ export class SessionSigner {
   public static SECRET_KEY = "some secrets";
   private static ALGORITHM = "sha256";
 
-  public sign(plainSessionStr: string, timestamp: number): string {
+  public sign(sessionStr: string, timestamp: number): string {
     let signature = crypto
       .createHmac(SessionSigner.ALGORITHM, SessionSigner.SECRET_KEY)
-      .update(`${plainSessionStr}/${timestamp}`)
+      .update(`${sessionStr}/${timestamp}`)
       .digest("base64");
     return signature;
   }
@@ -21,17 +26,18 @@ export class SessionSigner {
 export class SessionBuilder {
   public constructor(
     private sessionSigner: SessionSigner,
-    private getNow: () => number
+    private getNow: () => number,
   ) {}
 
   public static create(): SessionBuilder {
     return new SessionBuilder(new SessionSigner(), () => Date.now());
   }
 
-  public build(plainSessionStr: string): string {
+  public build<T>(session: T, sessionDescriptor: MessageDescriptor<T>): string {
+    let sessionStr = stringifyMessage(session, sessionDescriptor);
     let timestamp = millisecondsToSeconds(this.getNow());
-    let signature = this.sessionSigner.sign(plainSessionStr, timestamp);
-    return `${plainSessionStr}|${timestamp.toString(36)}|${signature}`;
+    let signature = this.sessionSigner.sign(sessionStr, timestamp);
+    return `${sessionStr}|${timestamp.toString(36)}|${signature}`;
   }
 }
 
@@ -44,10 +50,14 @@ export class SessionExtractor {
     return new SessionExtractor(new SessionSigner());
   }
 
-  public extract(signedSession: any): string {
+  public extract<T>(
+    signedSession: any,
+    sessionDescriptor: MessageDescriptor<T>,
+    loggingPrefix: string,
+  ): T {
     if (typeof signedSession !== "string") {
       throw newUnauthorizedError(
-        `signedSession is not a string, but it's ${signedSession}.`
+        `${loggingPrefix} signedSession is not a string, but it's ${signedSession}.`,
       );
     }
 
@@ -55,11 +65,11 @@ export class SessionExtractor {
     if (pieces.length !== 3) {
       throw newUnauthorizedError("Invalid signed session string.");
     }
-    let plainSessionStr = pieces[0];
+    let sessionStr = pieces[0];
     let timestamp = Number.parseInt(pieces[1], 36);
     let signature = pieces[2];
 
-    let signatureExpected = this.sessionSigner.sign(plainSessionStr, timestamp);
+    let signatureExpected = this.sessionSigner.sign(sessionStr, timestamp);
     if (signature !== signatureExpected) {
       throw newUnauthorizedError("Invalid session signature");
     }
@@ -69,6 +79,12 @@ export class SessionExtractor {
     ) {
       throw newUnauthorizedError("Session expired.");
     }
-    return plainSessionStr;
+    try {
+      return destringifyMessage(sessionStr, sessionDescriptor);
+    } catch (e) {
+      throw newBadRequestError(
+        `${loggingPrefix} Unable to destringify session string. Raw string: ${sessionStr}.`,
+      );
+    }
   }
 }

@@ -1,27 +1,7 @@
+import { MY_SESSION, MySession } from "./my_session";
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import { RemoteCallDescriptor } from "@selfage/service_descriptor";
 import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
-
-export interface MySession {
-  sessionId?: string;
-  userId?: string;
-}
-
-export let MY_SESSION: MessageDescriptor<MySession> = {
-  name: "MySession",
-  fields: [
-    {
-      name: "sessionId",
-      index: 1,
-      primitiveType: PrimitiveType.STRING,
-    },
-    {
-      name: "userId",
-      index: 2,
-      primitiveType: PrimitiveType.STRING,
-    },
-  ],
-};
 
 export interface GetHistoryRequestBody {
   page?: number;
@@ -70,9 +50,7 @@ export let GET_HISTORY: RemoteCallDescriptor = {
   },
 };
 
-export abstract class GetHistoryHandlerInterface
-  implements HandlerInterface
-{
+export abstract class GetHistoryHandlerInterface implements HandlerInterface {
   public descriptor = GET_HISTORY;
   public abstract handle(
     requestId: string,

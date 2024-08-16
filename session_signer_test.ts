@@ -3,8 +3,10 @@ import {
   SessionExtractor,
   SessionSigner,
 } from "./session_signer";
+import { MY_SESSION, MySession } from "./test_data/my_session";
 import { newUnauthorizedError } from "@selfage/http_error";
-import { assertThat, assertThrow, eq, eqError } from "@selfage/test_matcher";
+import { eqMessage } from "@selfage/message/test_matcher";
+import { assertThat, assertThrow, eqError } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
@@ -16,14 +18,18 @@ TEST_RUNNER.run({
         // Prepare
         let builder = SessionBuilder.create();
         let extractor = SessionExtractor.create();
-        let plainSessionStr = "some random string";
+        let inputSession: MySession = { sessionId: "s1", userId: "u2" };
 
         // Execute
-        let signedSession = builder.build(plainSessionStr);
-        let extractedSessionStr = extractor.extract(signedSession);
+        let signedSession = builder.build(inputSession, MY_SESSION);
+        let extractedSession = extractor.extract(signedSession, MY_SESSION, "");
 
         // Verify
-        assertThat(extractedSessionStr, eq(plainSessionStr), "session string");
+        assertThat(
+          extractedSession,
+          eqMessage(inputSession, MY_SESSION),
+          "session",
+        );
       },
     },
     {
@@ -32,20 +38,22 @@ TEST_RUNNER.run({
         // Prepare
         let builder = new SessionBuilder(
           new SessionSigner(),
-          () => Date.now() - 30 * 24 * 60 * 60 * 1000 - 1000
+          () => Date.now() - 30 * 24 * 60 * 60 * 1000 - 1000,
         );
         let extractor = SessionExtractor.create();
-        let plainSessionStr = "some random string";
+        let inputSession: MySession = { sessionId: "s1", userId: "u2" };
 
         // Execute
-        let signedSession = builder.build(plainSessionStr);
-        let error = assertThrow(() => extractor.extract(signedSession));
+        let signedSession = builder.build(inputSession, MY_SESSION);
+        let error = assertThrow(() =>
+          extractor.extract(signedSession, MY_SESSION, ""),
+        );
 
         // Verify
         assertThat(
           error,
           eqError(newUnauthorizedError("expired")),
-          "expired error"
+          "expired error",
         );
       },
     },
@@ -56,13 +64,15 @@ TEST_RUNNER.run({
         let extractor = SessionExtractor.create();
 
         // Execute
-        let error = assertThrow(() => extractor.extract(undefined));
+        let error = assertThrow(() =>
+          extractor.extract(undefined, MY_SESSION, ""),
+        );
 
         // Verify
         assertThat(
           error,
           eqError(newUnauthorizedError("is not a string")),
-          "missing error"
+          "missing error",
         );
       },
     },
@@ -74,13 +84,15 @@ TEST_RUNNER.run({
         let malformattedSession = "some random string|12313";
 
         // Execute
-        let error = assertThrow(() => extractor.extract(malformattedSession));
+        let error = assertThrow(() =>
+          extractor.extract(malformattedSession, MY_SESSION, ""),
+        );
 
         // Verify
         assertThat(
           error,
           eqError(newUnauthorizedError("Invalid signed session")),
-          "malformatted error"
+          "malformatted error",
         );
       },
     },
@@ -93,14 +105,14 @@ TEST_RUNNER.run({
 
         // Execute
         let error = assertThrow(() =>
-          extractor.extract(incorrectSignedSession)
+          extractor.extract(incorrectSignedSession, MY_SESSION, ""),
         );
 
         // Verify
         assertThat(
           error,
           eqError(newUnauthorizedError("signature")),
-          "signature error"
+          "signature error",
         );
       },
     },

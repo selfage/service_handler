@@ -21,8 +21,6 @@ import {
   GetHistoryHandlerInterface,
   GetHistoryRequestBody,
   GetHistoryResponse,
-  MY_SESSION,
-  MySession,
 } from "./test_data/get_history";
 import {
   HEART_BEAT_REQUEST_METADATA,
@@ -33,6 +31,7 @@ import {
   HeartBeatResponse,
   HeartBeatStreamRequestBody,
 } from "./test_data/heart_beat";
+import { MY_SESSION, MySession } from "./test_data/my_session";
 import {
   UPLOAD_FILE_REQUEST_METADATA,
   UPLOAD_FILE_RESPONSE,
@@ -187,10 +186,8 @@ TEST_RUNNER.run({
               headers: {
                 "Content-Type": "text/plain",
                 u: SessionBuilder.create().build(
-                  stringifyMessage(
-                    { sessionId: "ses1", userId: "u1" },
-                    MY_SESSION,
-                  ),
+                  { sessionId: "ses1", userId: "u1" },
+                  MY_SESSION,
                 ),
               },
             })
