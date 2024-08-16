@@ -1,23 +1,28 @@
 import express = require("express");
-import { BaseServiceHandler, ConsoleLogger, Logger } from "./base_handler";
+import { BaseRemoteCallHandler, ConsoleLogger, Logger } from "./base_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
 import { SessionExtractor } from "./session_signer";
-import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
+import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
 
 export class HandlerRegister {
+  public static create(
+    router: express.Router,
+    logger: Logger = new ConsoleLogger(),
+  ): HandlerRegister {
+    return new HandlerRegister(
+      router,
+      BaseRemoteCallHandler.create(SessionExtractor.create(), logger),
+    );
+  }
+
   public constructor(
     private router: express.Router,
-    private logger: Logger = new ConsoleLogger()
+    private baseHandler: BaseRemoteCallHandler,
   ) {}
 
-  public register(serviceHandler: ServiceHandlerInterface): this {
-    let handler = new BaseServiceHandler(
-      serviceHandler,
-      SessionExtractor.create(),
-      this.logger
-    );
-    this.router.post(serviceHandler.descriptor.path, (req, res) =>
-      handler.handle(req, res)
+  public register(remoteCallHandler: HandlerInterface): this {
+    this.router.post(remoteCallHandler.descriptor.path, (req, res) =>
+      this.baseHandler.handle(remoteCallHandler, req, res),
     );
     return this;
   }

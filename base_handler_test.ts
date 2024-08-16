@@ -25,6 +25,7 @@ import {
   MySession,
 } from "./test_data/get_history";
 import {
+  HEART_BEAT_REQUEST_METADATA,
   HEART_BEAT_RESPONSE,
   HEART_BEAT_STREAM_REQUEST_BODY,
   HeartBeatHandlerInterface,
@@ -39,6 +40,10 @@ import {
   UploadFileRequestMetadata,
   UploadFileResponse,
 } from "./test_data/upload_file";
+import {
+  destringifyMessage,
+  stringifyMessage,
+} from "@selfage/message/stringifier";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat, eq, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER, TestCase } from "@selfage/test_runner";
@@ -47,14 +52,13 @@ let HOST_NAME = "localhost";
 let PORT = 8000;
 let ORIGIN = `http://${HOST_NAME}:${PORT}`;
 
-async function createServer(): Promise<[http.Server, HandlerRegister]> {
+async function createServer(): Promise<[http.Server, express.Express]> {
   let app = express();
-  let register = new HandlerRegister(app);
   let server = http.createServer(app);
   await new Promise<void>((resolve) => {
     server.listen({ host: HOST_NAME, port: PORT }, () => resolve());
   });
-  return [server, register];
+  return [server, app];
 }
 
 async function closeServer(server?: http.Server): Promise<void> {
@@ -84,18 +88,24 @@ TEST_RUNNER.run({
               return { texts: ["aaaa", "bbb", "cc"] };
             }
           })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
+        let app: express.Express;
+        [this.server, app] = await createServer();
 
         // Execute
-        register.register(getCommentHandler);
-        let response = await (
-          await nodeFetch(`${ORIGIN}/GetComments`, {
-            method: "post",
-            body: JSON.stringify({ videoId: "idx" }),
-            headers: { "Content-Type": "application/json" },
-          })
-        ).json();
+        HandlerRegister.create(app).register(getCommentHandler);
+        let response = destringifyMessage(
+          await (
+            await nodeFetch(`${ORIGIN}/GetComments`, {
+              method: "post",
+              body: stringifyMessage(
+                { videoId: "idx" },
+                GET_COMMENTS_REQUEST_BODY,
+              ),
+              headers: { "Content-Type": "text/plain" },
+            })
+          ).text(),
+          GET_COMMENTS_RESPONSE,
+        );
 
         // Verify
         assertThat(
@@ -110,7 +120,7 @@ TEST_RUNNER.run({
         );
       }
       public async tearDown() {
-        closeServer(this.server);
+        await closeServer(this.server);
       }
     })(),
     new (class implements TestCase {
@@ -127,22 +137,22 @@ TEST_RUNNER.run({
               throw new Error("Should not be reachable.");
             }
           })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
+        let app: express.Express;
+        [this.server, app] = await createServer();
 
         // Execute
-        register.register(getCommentHandler);
+        HandlerRegister.create(app).register(getCommentHandler);
         let response = await nodeFetch(`${ORIGIN}/GetComments`, {
           method: "post",
           body: "",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain" },
         });
 
         // Verify
         assertThat(response.status, eq(400), "status code");
       }
       public async tearDown() {
-        closeServer(this.server);
+        await closeServer(this.server);
       }
     })(),
     new (class implements TestCase {
@@ -164,23 +174,29 @@ TEST_RUNNER.run({
               return { videos: ["id1", "id2", "id3"] };
             }
           })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
+        let app: express.Express;
+        [this.server, app] = await createServer();
 
         // Execute
-        register.register(getHistoryHandler);
-        let response = await (
-          await nodeFetch(`${ORIGIN}/GetHistory`, {
-            method: "post",
-            body: JSON.stringify({ page: 10 }),
-            headers: {
-              "Content-Type": "application/json",
-              u: SessionBuilder.create().build(
-                JSON.stringify({ sessionId: "ses1", userId: "u1" }),
-              ),
-            },
-          })
-        ).json();
+        HandlerRegister.create(app).register(getHistoryHandler);
+        let response = destringifyMessage(
+          await (
+            await nodeFetch(`${ORIGIN}/GetHistory`, {
+              method: "post",
+              body: stringifyMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
+              headers: {
+                "Content-Type": "text/plain",
+                u: SessionBuilder.create().build(
+                  stringifyMessage(
+                    { sessionId: "ses1", userId: "u1" },
+                    MY_SESSION,
+                  ),
+                ),
+              },
+            })
+          ).text(),
+          GET_HISTORY_RESPONSE,
+        );
 
         // Verify
         assertThat(
@@ -200,7 +216,7 @@ TEST_RUNNER.run({
         );
       }
       public async tearDown() {
-        closeServer(this.server);
+        await closeServer(this.server);
       }
     })(),
     new (class implements TestCase {
@@ -218,22 +234,22 @@ TEST_RUNNER.run({
               throw new Error("Should not be reachable.");
             }
           })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
+        let app: express.Express;
+        [this.server, app] = await createServer();
 
         // Execute
-        register.register(getHistoryHandler);
+        HandlerRegister.create(app).register(getHistoryHandler);
         let response = await nodeFetch(`${ORIGIN}/GetHistory`, {
           method: "post",
-          body: JSON.stringify({ page: 10 }),
-          headers: { "Content-Type": "application/json" },
+          body: stringifyMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
+          headers: { "Content-Type": "text/plain" },
         });
 
         // Verify
         assertThat(response.status, eq(401), "status code");
       }
       public async tearDown() {
-        closeServer(this.server);
+        await closeServer(this.server);
       }
     })(),
     new (class implements TestCase {
@@ -255,23 +271,29 @@ TEST_RUNNER.run({
               return { byteSize: 121, success: true };
             }
           })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
+        let app: express.Express;
+        [this.server, app] = await createServer();
 
         let searchParam = new URLSearchParams();
-        searchParam.set("sd", JSON.stringify({ fileName: "file1" }));
+        searchParam.set(
+          "sd",
+          stringifyMessage({ fileName: "file1" }, UPLOAD_FILE_REQUEST_METADATA),
+        );
 
         // Execute
-        register.register(uploadFileHandler);
-        let response = await (
-          await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
-            method: "post",
-            body: fs.createReadStream(
-              path.join(__dirname, "test_data", "text.txt"),
-            ),
-            headers: { "Content-Type": "application/octet-stream" },
-          })
-        ).json();
+        HandlerRegister.create(app).register(uploadFileHandler);
+        let response = destringifyMessage(
+          await (
+            await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
+              method: "post",
+              body: fs.createReadStream(
+                path.join(__dirname, "test_data", "text.txt"),
+              ),
+              headers: { "Content-Type": "application/octet-stream" },
+            })
+          ).text(),
+          UPLOAD_FILE_RESPONSE,
+        );
 
         // Verify
         assertThat(
@@ -287,7 +309,7 @@ TEST_RUNNER.run({
         );
       }
       public async tearDown() {
-        closeServer(this.server);
+        await closeServer(this.server);
       }
     })(),
     new (class implements TestCase {
@@ -305,11 +327,11 @@ TEST_RUNNER.run({
               throw new Error("Should not be reachable.");
             }
           })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
+        let app: express.Express;
+        [this.server, app] = await createServer();
 
         // Execute
-        register.register(uploadFileHandler);
+        HandlerRegister.create(app).register(uploadFileHandler);
         let response = await nodeFetch(`${ORIGIN}/UploadFile`, {
           method: "post",
           body: fs.createReadStream(
@@ -322,7 +344,7 @@ TEST_RUNNER.run({
         assertThat(response.status, eq(400), "status code");
       }
       public async tearDown() {
-        closeServer(this.server);
+        await closeServer(this.server);
       }
     })(),
     new (class implements TestCase {
@@ -344,23 +366,29 @@ TEST_RUNNER.run({
               return {};
             }
           })();
-        let register: HandlerRegister;
-        [this.server, register] = await createServer();
+        let app: express.Express;
+        [this.server, app] = await createServer();
 
         let searchParam = new URLSearchParams();
-        searchParam.set("sd", JSON.stringify({ userId: "user1" }));
+        searchParam.set(
+          "sd",
+          stringifyMessage({ userId: "user1" }, HEART_BEAT_REQUEST_METADATA),
+        );
 
         // Execute
-        register.register(heartBeatHandler);
-        let response = await (
-          await nodeFetch(`${ORIGIN}/HeartBeat?${searchParam}`, {
-            method: "post",
-            body: fs.createReadStream(
-              path.join(__dirname, "test_data", "heartbeat_stream_data.txt"),
-            ),
-            headers: { "Content-Type": "application/octet-stream" },
-          })
-        ).json();
+        HandlerRegister.create(app).register(heartBeatHandler);
+        let response = destringifyMessage(
+          await (
+            await nodeFetch(`${ORIGIN}/HeartBeat?${searchParam}`, {
+              method: "post",
+              body: fs.createReadStream(
+                path.join(__dirname, "test_data", "heartbeat_stream_data.txt"),
+              ),
+              headers: { "Content-Type": "application/octet-stream" },
+            })
+          ).text(),
+          HEART_BEAT_RESPONSE,
+        );
 
         // Verify
         assertThat(
@@ -390,7 +418,7 @@ TEST_RUNNER.run({
         assertThat(response, eqMessage({}, HEART_BEAT_RESPONSE), "response");
       }
       public async tearDown() {
-        closeServer(this.server);
+        await closeServer(this.server);
       }
     })(),
   ],

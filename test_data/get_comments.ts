@@ -1,6 +1,6 @@
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
-import { ServiceDescriptor } from "@selfage/service_descriptor";
-import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
+import { RemoteCallDescriptor } from "@selfage/service_descriptor";
+import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
 
 export interface GetCommentsRequestBody {
   videoId?: string;
@@ -12,6 +12,7 @@ export let GET_COMMENTS_REQUEST_BODY: MessageDescriptor<GetCommentsRequestBody> 
     fields: [
       {
         name: "videoId",
+        index: 1,
         primitiveType: PrimitiveType.STRING,
       },
     ],
@@ -26,13 +27,14 @@ export let GET_COMMENTS_RESPONSE: MessageDescriptor<GetCommentsResponse> = {
   fields: [
     {
       name: "texts",
+      index: 2,
       primitiveType: PrimitiveType.STRING,
       isArray: true,
     },
   ],
 };
 
-export let GET_COMMENTS: ServiceDescriptor = {
+export let GET_COMMENTS: RemoteCallDescriptor = {
   name: "GetComments",
   path: "/GetComments",
   body: {
@@ -44,7 +46,7 @@ export let GET_COMMENTS: ServiceDescriptor = {
 };
 
 export abstract class GetCommentsHandlerInterface
-  implements ServiceHandlerInterface
+  implements HandlerInterface
 {
   public descriptor = GET_COMMENTS;
   public abstract handle(

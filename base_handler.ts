@@ -6,9 +6,13 @@ import {
   newBadRequestError,
   newInternalServerErrorError,
 } from "@selfage/http_error";
-import { parseMessage } from "@selfage/message/parser";
+import { MessageDescriptor } from "@selfage/message/descriptor";
+import {
+  destringifyMessage,
+  stringifyMessage,
+} from "@selfage/message/stringifier";
 import { PrimitveTypeForBody } from "@selfage/service_descriptor";
-import { ServiceHandlerInterface } from "@selfage/service_descriptor/service_handler_interface";
+import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
 
 export interface Logger {
   info(str: string): void;
@@ -28,14 +32,21 @@ export class ConsoleLogger {
   }
 }
 
-export class BaseServiceHandler {
+export class BaseRemoteCallHandler {
+  public static create(
+    sessionExtractor: SessionExtractor,
+    logger: Logger,
+  ): BaseRemoteCallHandler {
+    return new BaseRemoteCallHandler(sessionExtractor, logger);
+  }
+
   public constructor(
-    private serviceHandler: ServiceHandlerInterface,
     private sessionExtractor: SessionExtractor,
     private logger: Logger,
   ) {}
 
   public async handle(
+    remoteCallHandler: HandlerInterface,
     req: express.Request,
     res: express.Response,
   ): Promise<void> {
@@ -51,8 +62,16 @@ export class BaseServiceHandler {
     this.logger.info(`${loggingPrefix} ${req.url}.`);
 
     try {
-      let response = await this.handleRequest(req, loggingPrefix);
-      await this.sendResponse(res, response);
+      let response = await this.handleRequest(
+        remoteCallHandler,
+        req,
+        loggingPrefix,
+      );
+      await this.sendResponse(
+        res,
+        response,
+        remoteCallHandler.descriptor.response.messageType,
+      );
     } catch (e) {
       if (e.stack) {
         this.logger.error(`${loggingPrefix} ${e.stack}`);
@@ -68,30 +87,31 @@ export class BaseServiceHandler {
   }
 
   private async handleRequest(
+    remoteCallHandler: HandlerInterface,
     req: express.Request,
     loggingPrefix: string,
   ): Promise<any> {
     let args: any[] = [loggingPrefix];
-    if (this.serviceHandler.descriptor.body.messageType) {
-      let bodyStr = (
-        await getStream.buffer(req, {
-          maxBuffer: 1 * 1024 * 1024,
-        })
-      ).toString("utf8");
+    if (remoteCallHandler.descriptor.body.messageType) {
+      let bodyBuffer = await getStream.buffer(req, {
+        maxBuffer: 1 * 1024 * 1024,
+      });
       args.push(
-        parseMessage(
-          this.parseJson(bodyStr, loggingPrefix, `body`),
-          this.serviceHandler.descriptor.body.messageType,
+        this.destringify(
+          bodyBuffer.toString(),
+          remoteCallHandler.descriptor.body.messageType,
+          loggingPrefix,
+          `body`,
         ),
       );
-    } else if (this.serviceHandler.descriptor.body.streamMessageType) {
+    } else if (remoteCallHandler.descriptor.body.streamMessageType) {
       let streamReader = new StreamMessageReader(
         req,
-        this.serviceHandler.descriptor.body.streamMessageType,
+        remoteCallHandler.descriptor.body.streamMessageType,
       );
       args.push(streamReader);
     } else if (
-      this.serviceHandler.descriptor.body.primitiveType ===
+      remoteCallHandler.descriptor.body.primitiveType ===
       PrimitveTypeForBody.BYTES
     ) {
       args.push(req);
@@ -99,39 +119,44 @@ export class BaseServiceHandler {
       throw newInternalServerErrorError(`Unsupported server request body.`);
     }
 
-    if (this.serviceHandler.descriptor.metadata) {
+    if (remoteCallHandler.descriptor.metadata) {
       args.push(
-        parseMessage(
-          this.parseJson(
-            req.query[this.serviceHandler.descriptor.metadata.key],
-            loggingPrefix,
-            `metadata`,
-          ),
-          this.serviceHandler.descriptor.metadata.type,
+        this.destringify(
+          req.query[remoteCallHandler.descriptor.metadata.key] as string,
+          remoteCallHandler.descriptor.metadata.type,
+          loggingPrefix,
+          `metadata`,
         ),
       );
     }
 
-    if (this.serviceHandler.descriptor.auth) {
+    if (remoteCallHandler.descriptor.auth) {
       let authStr = this.sessionExtractor.extract(
-        req.header(this.serviceHandler.descriptor.auth.key),
+        req.header(remoteCallHandler.descriptor.auth.key),
       );
       args.push(
-        parseMessage(
-          this.parseJson(authStr, loggingPrefix, `auth`),
-          this.serviceHandler.descriptor.auth.type,
+        this.destringify(
+          authStr,
+          remoteCallHandler.descriptor.auth.type,
+          loggingPrefix,
+          `auth`,
         ),
       );
     }
-    return this.serviceHandler.handle(...args);
+    return remoteCallHandler.handle(...args);
   }
 
-  private parseJson(value: any, loggingPrefix: string, what: string): any {
+  private destringify(
+    value: string,
+    messageDescriptor: MessageDescriptor<any>,
+    loggingPrefix: string,
+    what: string,
+  ): any {
     try {
-      return JSON.parse(value);
+      return destringifyMessage(value, messageDescriptor);
     } catch (e) {
       throw newBadRequestError(
-        `${loggingPrefix} Unable to parse ${what}. Raw json string: ${value}.`,
+        `${loggingPrefix} Unable to destringify ${what}. Raw string: ${value}.`,
       );
     }
   }
@@ -139,7 +164,8 @@ export class BaseServiceHandler {
   private async sendResponse(
     res: express.Response,
     handlerResponse: any,
+    messageDescriptor: MessageDescriptor<any>,
   ): Promise<void> {
-    res.json(handlerResponse);
+    res.end(stringifyMessage(handlerResponse, messageDescriptor));
   }
 }
