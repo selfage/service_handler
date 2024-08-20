@@ -12,7 +12,10 @@ import {
   stringifyMessage,
 } from "@selfage/message/stringifier";
 import { PrimitveTypeForBody } from "@selfage/service_descriptor";
-import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
+import {
+  NodeHandlerInterface,
+  WebHandlerInterface,
+} from "@selfage/service_descriptor/handler_interface";
 
 export interface Logger {
   info(str: string): void;
@@ -32,12 +35,12 @@ export class ConsoleLogger {
   }
 }
 
-export class BaseRemoteCallHandler {
+export class BaseWebRemoteCallHandler {
   public static create(
     sessionExtractor: SessionExtractor,
     logger: Logger,
-  ): BaseRemoteCallHandler {
-    return new BaseRemoteCallHandler(sessionExtractor, logger);
+  ): BaseWebRemoteCallHandler {
+    return new BaseWebRemoteCallHandler(sessionExtractor, logger);
   }
 
   public constructor(
@@ -45,10 +48,35 @@ export class BaseRemoteCallHandler {
     private logger: Logger,
   ) {}
 
-  public async handle(
-    remoteCallHandler: HandlerInterface,
+  public async handleWeb(
+    remoteCallHandler: WebHandlerInterface,
     req: express.Request,
     res: express.Response,
+  ): Promise<void> {
+    await this.handle(remoteCallHandler, req, res, (loggingPrefix: string) => {
+      if (remoteCallHandler.descriptor.auth) {
+        return this.sessionExtractor.extract(
+          req.header(remoteCallHandler.descriptor.auth.key),
+          remoteCallHandler.descriptor.auth.type,
+          loggingPrefix,
+        );
+      }
+    });
+  }
+
+  public async handleNode(
+    remoteCallHandler: NodeHandlerInterface,
+    req: express.Request,
+    res: express.Response,
+  ): Promise<void> {
+    await this.handle(remoteCallHandler, req, res);
+  }
+
+  public async handle(
+    remoteCallHandler: WebHandlerInterface | NodeHandlerInterface,
+    req: express.Request,
+    res: express.Response,
+    getAuthArg?: (loggingPrefix: string) => string,
   ): Promise<void> {
     // Always allow CORS.
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -87,9 +115,10 @@ export class BaseRemoteCallHandler {
   }
 
   private async handleRequest(
-    remoteCallHandler: HandlerInterface,
+    remoteCallHandler: WebHandlerInterface | NodeHandlerInterface,
     req: express.Request,
     loggingPrefix: string,
+    getAuthArg?: (loggingPrefix: string) => string,
   ): Promise<any> {
     let args: any[] = [loggingPrefix];
     if (remoteCallHandler.descriptor.body.messageType) {
@@ -105,6 +134,7 @@ export class BaseRemoteCallHandler {
         ),
       );
     } else if (remoteCallHandler.descriptor.body.streamMessageType) {
+      // NOTE: Doesn't work! Client side requires http2 to enable custom streaming with unspecified content length.
       let streamReader = new StreamMessageReader(
         req,
         remoteCallHandler.descriptor.body.streamMessageType,
@@ -130,14 +160,8 @@ export class BaseRemoteCallHandler {
       );
     }
 
-    if (remoteCallHandler.descriptor.auth) {
-      args.push(
-        this.sessionExtractor.extract(
-          req.header(remoteCallHandler.descriptor.auth.key),
-          remoteCallHandler.descriptor.auth.type,
-          loggingPrefix,
-        ),
-      );
+    if (getAuthArg) {
+      args.push(getAuthArg(loggingPrefix));
     }
     return remoteCallHandler.handle(...args);
   }

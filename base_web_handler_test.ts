@@ -91,7 +91,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getCommentHandler);
+        HandlerRegister.create(app).registerNode(getCommentHandler);
         let response = destringifyMessage(
           await (
             await nodeFetch(`${ORIGIN}/GetComments`, {
@@ -140,7 +140,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getCommentHandler);
+        HandlerRegister.create(app).registerNode(getCommentHandler);
         let response = await nodeFetch(`${ORIGIN}/GetComments`, {
           method: "post",
           body: "",
@@ -177,7 +177,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getHistoryHandler);
+        HandlerRegister.create(app).registerWeb(getHistoryHandler);
         let response = destringifyMessage(
           await (
             await nodeFetch(`${ORIGIN}/GetHistory`, {
@@ -235,7 +235,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getHistoryHandler);
+        HandlerRegister.create(app).registerWeb(getHistoryHandler);
         let response = await nodeFetch(`${ORIGIN}/GetHistory`, {
           method: "post",
           body: stringifyMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
@@ -278,7 +278,7 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        HandlerRegister.create(app).register(uploadFileHandler);
+        HandlerRegister.create(app).registerWeb(uploadFileHandler);
         let response = destringifyMessage(
           await (
             await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
@@ -328,7 +328,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(uploadFileHandler);
+        HandlerRegister.create(app).registerWeb(uploadFileHandler);
         let response = await nodeFetch(`${ORIGIN}/UploadFile`, {
           method: "post",
           body: fs.createReadStream(
@@ -373,7 +373,7 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        HandlerRegister.create(app).register(heartBeatHandler);
+        HandlerRegister.create(app).registerWeb(heartBeatHandler);
         let response = destringifyMessage(
           await (
             await nodeFetch(`${ORIGIN}/HeartBeat?${searchParam}`, {
