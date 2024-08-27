@@ -40,9 +40,10 @@ import {
   UploadFileResponse,
 } from "./test_data/upload_file";
 import {
-  destringifyMessage,
-  stringifyMessage,
-} from "@selfage/message/stringifier";
+  deserializeMessage,
+  serializeMessage,
+} from "@selfage/message/serializer";
+import { stringifyMessage } from "@selfage/message/stringifier";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat, eq, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER, TestCase } from "@selfage/test_runner";
@@ -92,17 +93,17 @@ TEST_RUNNER.run({
 
         // Execute
         HandlerRegister.create(app).registerNode(getCommentHandler);
-        let response = destringifyMessage(
+        let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/GetComments`, {
               method: "post",
-              body: stringifyMessage(
+              body: serializeMessage(
                 { videoId: "idx" },
                 GET_COMMENTS_REQUEST_BODY,
               ),
-              headers: { "Content-Type": "text/plain" },
+              headers: { "Content-Type": "application/octet-stream" },
             })
-          ).text(),
+          ).buffer(),
           GET_COMMENTS_RESPONSE,
         );
 
@@ -178,20 +179,20 @@ TEST_RUNNER.run({
 
         // Execute
         HandlerRegister.create(app).registerWeb(getHistoryHandler);
-        let response = destringifyMessage(
+        let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/GetHistory`, {
               method: "post",
-              body: stringifyMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
+              body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
               headers: {
-                "Content-Type": "text/plain",
+                "Content-Type": "application/octet-stream",
                 u: SessionBuilder.create().build(
                   { sessionId: "ses1", userId: "u1" },
                   MY_SESSION,
                 ),
               },
             })
-          ).text(),
+          ).buffer(),
           GET_HISTORY_RESPONSE,
         );
 
@@ -238,8 +239,8 @@ TEST_RUNNER.run({
         HandlerRegister.create(app).registerWeb(getHistoryHandler);
         let response = await nodeFetch(`${ORIGIN}/GetHistory`, {
           method: "post",
-          body: stringifyMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
-          headers: { "Content-Type": "text/plain" },
+          body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
+          headers: { "Content-Type": "application/octet-stream" },
         });
 
         // Verify
@@ -279,7 +280,7 @@ TEST_RUNNER.run({
 
         // Execute
         HandlerRegister.create(app).registerWeb(uploadFileHandler);
-        let response = destringifyMessage(
+        let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
               method: "post",
@@ -288,7 +289,7 @@ TEST_RUNNER.run({
               ),
               headers: { "Content-Type": "application/octet-stream" },
             })
-          ).text(),
+          ).buffer(),
           UPLOAD_FILE_RESPONSE,
         );
 
@@ -374,7 +375,7 @@ TEST_RUNNER.run({
 
         // Execute
         HandlerRegister.create(app).registerWeb(heartBeatHandler);
-        let response = destringifyMessage(
+        let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/HeartBeat?${searchParam}`, {
               method: "post",
@@ -383,7 +384,7 @@ TEST_RUNNER.run({
               ),
               headers: { "Content-Type": "application/octet-stream" },
             })
-          ).text(),
+          ).buffer(),
           HEART_BEAT_RESPONSE,
         );
 

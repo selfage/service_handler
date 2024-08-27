@@ -8,9 +8,10 @@ import {
 } from "@selfage/http_error";
 import { MessageDescriptor } from "@selfage/message/descriptor";
 import {
-  destringifyMessage,
-  stringifyMessage,
-} from "@selfage/message/stringifier";
+  deserializeMessage,
+  serializeMessage,
+} from "@selfage/message/serializer";
+import { destringifyMessage } from "@selfage/message/stringifier";
 import { PrimitveTypeForBody } from "@selfage/service_descriptor";
 import {
   NodeHandlerInterface,
@@ -94,6 +95,7 @@ export class BaseWebRemoteCallHandler {
         remoteCallHandler,
         req,
         loggingPrefix,
+        getAuthArg,
       );
       await this.sendResponse(
         res,
@@ -111,6 +113,7 @@ export class BaseWebRemoteCallHandler {
       } else {
         res.sendStatus(500);
       }
+      await new Promise<void>((resolve) => res.end(resolve));
     }
   }
 
@@ -126,8 +129,8 @@ export class BaseWebRemoteCallHandler {
         maxBuffer: 1 * 1024 * 1024,
       });
       args.push(
-        this.destringify(
-          bodyBuffer.toString(),
+        this.deserialize(
+          bodyBuffer,
           remoteCallHandler.descriptor.body.messageType,
           loggingPrefix,
           `body`,
@@ -181,11 +184,28 @@ export class BaseWebRemoteCallHandler {
     }
   }
 
+  private deserialize(
+    value: Uint8Array,
+    messageDescriptor: MessageDescriptor<any>,
+    loggingPrefix: string,
+    what: string,
+  ): any {
+    try {
+      return deserializeMessage(value, messageDescriptor);
+    } catch (e) {
+      throw newBadRequestError(
+        `${loggingPrefix} Unable to deserialize ${what}. Raw value as base64: ${Buffer.from(value).toString("base64")}.`,
+      );
+    }
+  }
+
   private async sendResponse(
     res: express.Response,
     handlerResponse: any,
     messageDescriptor: MessageDescriptor<any>,
   ): Promise<void> {
-    res.end(stringifyMessage(handlerResponse, messageDescriptor));
+    await new Promise<void>((resolve) =>
+      res.end(serializeMessage(handlerResponse, messageDescriptor), resolve),
+    );
   }
 }

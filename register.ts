@@ -26,14 +26,14 @@ export class HandlerRegister {
 
   public registerWeb(remoteCallHandler: WebHandlerInterface): this {
     this.router.post(remoteCallHandler.descriptor.path, (req, res) =>
-      this.baseHandler.handle(remoteCallHandler, req, res),
+      this.baseHandler.handleWeb(remoteCallHandler, req, res),
     );
     return this;
   }
 
   public registerNode(remoteCallHandler: NodeHandlerInterface): this {
     this.router.post(remoteCallHandler.descriptor.path, (req, res) =>
-      this.baseHandler.handle(remoteCallHandler, req, res),
+      this.baseHandler.handleNode(remoteCallHandler, req, res),
     );
     return this
   }
