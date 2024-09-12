@@ -1,9 +1,5 @@
 import express = require("express");
-import {
-  BaseWebRemoteCallHandler,
-  ConsoleLogger,
-  Logger,
-} from "./base_web_handler";
+import { BaseWebRemoteCallHandler } from "./base_web_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
 import {
   NodeHandlerInterface,
@@ -11,11 +7,8 @@ import {
 } from "@selfage/service_descriptor/handler_interface";
 
 export class HandlerRegister {
-  public static create(
-    router: express.Router,
-    logger: Logger = new ConsoleLogger(),
-  ): HandlerRegister {
-    return new HandlerRegister(router, BaseWebRemoteCallHandler.create(logger));
+  public static create(router: express.Router): HandlerRegister {
+    return new HandlerRegister(router, BaseWebRemoteCallHandler.create());
   }
 
   public constructor(

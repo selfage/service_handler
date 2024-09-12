@@ -18,30 +18,10 @@ import {
   WebHandlerInterface,
 } from "@selfage/service_descriptor/handler_interface";
 
-export interface Logger {
-  info(str: string): void;
-  warn(str: string): void;
-  error(str: string): void;
-}
-
-export class ConsoleLogger {
-  public info(str: string): void {
-    console.info(str);
-  }
-  public warn(str: string): void {
-    console.warn(str);
-  }
-  public error(str: string): void {
-    console.error(str);
-  }
-}
-
 export class BaseWebRemoteCallHandler {
-  public static create(logger: Logger): BaseWebRemoteCallHandler {
-    return new BaseWebRemoteCallHandler(logger);
+  public static create(): BaseWebRemoteCallHandler {
+    return new BaseWebRemoteCallHandler();
   }
-
-  public constructor(private logger: Logger) {}
 
   public async handleWeb(
     remoteCallHandler: WebHandlerInterface,
@@ -84,7 +64,7 @@ export class BaseWebRemoteCallHandler {
       Math.random() * 10000,
     )}`;
     let loggingPrefix = `Request ${requestId}:`;
-    this.logger.info(`${loggingPrefix} ${req.url}.`);
+    console.info(`${loggingPrefix} ${req.url}.`);
 
     try {
       let response = await this.handleRequest(
@@ -100,9 +80,9 @@ export class BaseWebRemoteCallHandler {
       );
     } catch (e) {
       if (e.stack) {
-        this.logger.error(`${loggingPrefix} ${e.stack}`);
+        console.error(`${loggingPrefix} ${e.stack}`);
       } else {
-        this.logger.error(`${loggingPrefix} ${e}`);
+        console.error(`${loggingPrefix} ${e}`);
       }
       if (e.statusCode) {
         res.sendStatus(e.statusCode);
