@@ -5,18 +5,17 @@ import {
   Logger,
 } from "./base_web_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
-import { SessionExtractor } from "./session_signer";
-import { NodeHandlerInterface, WebHandlerInterface } from "@selfage/service_descriptor/handler_interface";
+import {
+  NodeHandlerInterface,
+  WebHandlerInterface,
+} from "@selfage/service_descriptor/handler_interface";
 
 export class HandlerRegister {
   public static create(
     router: express.Router,
     logger: Logger = new ConsoleLogger(),
   ): HandlerRegister {
-    return new HandlerRegister(
-      router,
-      BaseWebRemoteCallHandler.create(SessionExtractor.create(), logger),
-    );
+    return new HandlerRegister(router, BaseWebRemoteCallHandler.create(logger));
   }
 
   public constructor(
@@ -35,7 +34,7 @@ export class HandlerRegister {
     this.router.post(remoteCallHandler.descriptor.path, (req, res) =>
       this.baseHandler.handleNode(remoteCallHandler, req, res),
     );
-    return this
+    return this;
   }
 
   public registerCorsAllowedPreflightHandler(): this {

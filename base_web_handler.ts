@@ -1,10 +1,10 @@
 import express = require("express");
 import getStream = require("get-stream");
-import { SessionExtractor } from "./session_signer";
 import { StreamMessageReader } from "./stream_message_reader";
 import {
   newBadRequestError,
   newInternalServerErrorError,
+  newUnauthorizedError,
 } from "@selfage/http_error";
 import { MessageDescriptor } from "@selfage/message/descriptor";
 import {
@@ -37,30 +37,26 @@ export class ConsoleLogger {
 }
 
 export class BaseWebRemoteCallHandler {
-  public static create(
-    sessionExtractor: SessionExtractor,
-    logger: Logger,
-  ): BaseWebRemoteCallHandler {
-    return new BaseWebRemoteCallHandler(sessionExtractor, logger);
+  public static create(logger: Logger): BaseWebRemoteCallHandler {
+    return new BaseWebRemoteCallHandler(logger);
   }
 
-  public constructor(
-    private sessionExtractor: SessionExtractor,
-    private logger: Logger,
-  ) {}
+  public constructor(private logger: Logger) {}
 
   public async handleWeb(
     remoteCallHandler: WebHandlerInterface,
     req: express.Request,
     res: express.Response,
   ): Promise<void> {
-    await this.handle(remoteCallHandler, req, res, (loggingPrefix: string) => {
-      if (remoteCallHandler.descriptor.auth) {
-        return this.sessionExtractor.extract(
-          req.header(remoteCallHandler.descriptor.auth.key),
-          remoteCallHandler.descriptor.auth.type,
-          loggingPrefix,
-        );
+    await this.handle(remoteCallHandler, req, res, (loggingPrefix, args) => {
+      if (remoteCallHandler.descriptor.sessionKey) {
+        let sessionStr = req.header(remoteCallHandler.descriptor.sessionKey);
+        if (!sessionStr) {
+          throw newUnauthorizedError(
+            `${loggingPrefix} no session string is found in the header ${remoteCallHandler.descriptor.sessionKey}.`,
+          );
+        }
+        args.push(sessionStr);
       }
     });
   }
@@ -70,14 +66,14 @@ export class BaseWebRemoteCallHandler {
     req: express.Request,
     res: express.Response,
   ): Promise<void> {
-    await this.handle(remoteCallHandler, req, res);
+    await this.handle(remoteCallHandler, req, res, () => {});
   }
 
   public async handle(
     remoteCallHandler: WebHandlerInterface | NodeHandlerInterface,
     req: express.Request,
     res: express.Response,
-    getAuthArg?: (loggingPrefix: string) => string,
+    getSessionStr: (loggingPrefix: string, args: Array<any>) => void,
   ): Promise<void> {
     // Always allow CORS.
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -95,7 +91,7 @@ export class BaseWebRemoteCallHandler {
         remoteCallHandler,
         req,
         loggingPrefix,
-        getAuthArg,
+        getSessionStr,
       );
       await this.sendResponse(
         res,
@@ -121,7 +117,7 @@ export class BaseWebRemoteCallHandler {
     remoteCallHandler: WebHandlerInterface | NodeHandlerInterface,
     req: express.Request,
     loggingPrefix: string,
-    getAuthArg?: (loggingPrefix: string) => string,
+    getSessionStr: (loggingPrefix: string, args: Array<any>) => void,
   ): Promise<any> {
     let args: any[] = [loggingPrefix];
     if (remoteCallHandler.descriptor.body.messageType) {
@@ -163,9 +159,7 @@ export class BaseWebRemoteCallHandler {
       );
     }
 
-    if (getAuthArg) {
-      args.push(getAuthArg(loggingPrefix));
-    }
+    getSessionStr(loggingPrefix, args);
     return remoteCallHandler.handle(...args);
   }
 

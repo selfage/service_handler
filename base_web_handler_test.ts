@@ -6,7 +6,6 @@ import path = require("path");
 import stream = require("stream");
 import nodeFetch from "node-fetch";
 import { HandlerRegister } from "./register";
-import { SessionBuilder } from "./session_signer";
 import { StreamMessageReader } from "./stream_message_reader";
 import {
   GET_COMMENTS_REQUEST_BODY,
@@ -31,7 +30,6 @@ import {
   HeartBeatResponse,
   HeartBeatStreamRequestBody,
 } from "./test_data/heart_beat";
-import { MY_SESSION, MySession } from "./test_data/my_session";
 import {
   UPLOAD_FILE_REQUEST_METADATA,
   UPLOAD_FILE_RESPONSE,
@@ -160,17 +158,17 @@ TEST_RUNNER.run({
       private server: http.Server;
       public async execute() {
         // Prepare
-        let session: MySession;
-        let capturedBody: GetHistoryRequestBody;
+        let sessionStrCaptured: string;
+        let bodyCaptured: GetHistoryRequestBody;
         let getHistoryHandler: GetHistoryHandlerInterface =
           new (class extends GetHistoryHandlerInterface {
             public async handle(
               requestId: string,
               body: GetHistoryRequestBody,
-              auth: MySession,
+              sessionStr: string,
             ): Promise<GetHistoryResponse> {
-              session = auth;
-              capturedBody = body;
+              sessionStrCaptured = sessionStr;
+              bodyCaptured = body;
               return { videos: ["id1", "id2", "id3"] };
             }
           })();
@@ -186,10 +184,7 @@ TEST_RUNNER.run({
               body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
               headers: {
                 "Content-Type": "application/octet-stream",
-                u: SessionBuilder.create().build(
-                  { sessionId: "ses1", userId: "u1" },
-                  MY_SESSION,
-                ),
+                u: "session 1",
               },
             })
           ).buffer(),
@@ -197,13 +192,9 @@ TEST_RUNNER.run({
         );
 
         // Verify
+        assertThat(sessionStrCaptured, eq("session 1"), "user session");
         assertThat(
-          session,
-          eqMessage({ sessionId: "ses1", userId: "u1" }, MY_SESSION),
-          "user session",
-        );
-        assertThat(
-          capturedBody,
+          bodyCaptured,
           eqMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
           "request body",
         );
@@ -227,7 +218,7 @@ TEST_RUNNER.run({
             public async handle(
               requestId: string,
               body: GetHistoryRequestBody,
-              auth: MySession,
+              sessionStr: string,
             ): Promise<GetHistoryResponse> {
               throw new Error("Should not be reachable.");
             }
