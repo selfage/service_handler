@@ -1,5 +1,5 @@
 import express = require("express");
-import { BaseWebRemoteCallHandler } from "./base_web_handler";
+import { BaseHandler } from "./base_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
 import {
   NodeHandlerInterface,
@@ -8,12 +8,12 @@ import {
 
 export class HandlerRegister {
   public static create(router: express.Router): HandlerRegister {
-    return new HandlerRegister(router, BaseWebRemoteCallHandler.create());
+    return new HandlerRegister(router, BaseHandler.create());
   }
 
   public constructor(
     private router: express.Router,
-    private baseHandler: BaseWebRemoteCallHandler,
+    private baseHandler: BaseHandler,
   ) {}
 
   public registerWeb(remoteCallHandler: WebHandlerInterface): this {

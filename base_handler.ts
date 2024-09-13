@@ -1,5 +1,6 @@
 import express = require("express");
 import getStream = require("get-stream");
+import promClient = require("prom-client");
 import { StreamMessageReader } from "./stream_message_reader";
 import {
   newBadRequestError,
@@ -18,9 +19,20 @@ import {
   WebHandlerInterface,
 } from "@selfage/service_descriptor/handler_interface";
 
-export class BaseWebRemoteCallHandler {
-  public static create(): BaseWebRemoteCallHandler {
-    return new BaseWebRemoteCallHandler();
+let TOTAL_COUNTER = new promClient.Counter({
+  name: "remote_calls_total",
+  help: "The total number of calls received.",
+  labelNames: ["path"],
+});
+let FAILURE_COUNTER = new promClient.Counter({
+  name: "remote_calls_failure",
+  help: "The number of failed calls.",
+  labelNames: ["path", "error_code"],
+});
+
+export class BaseHandler {
+  public static create(): BaseHandler {
+    return new BaseHandler();
   }
 
   public async handleWeb(
@@ -55,6 +67,7 @@ export class BaseWebRemoteCallHandler {
     res: express.Response,
     getSessionStr: (loggingPrefix: string, args: Array<any>) => void,
   ): Promise<void> {
+    TOTAL_COUNTER.inc({ path: remoteCallHandler.descriptor.path });
     // Always allow CORS.
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "*");
@@ -84,11 +97,17 @@ export class BaseWebRemoteCallHandler {
       } else {
         console.error(`${loggingPrefix} ${e}`);
       }
+      let statusCode: number;
       if (e.statusCode) {
-        res.sendStatus(e.statusCode);
+        statusCode = e.statusCode;
       } else {
-        res.sendStatus(500);
+        statusCode = 500;
       }
+      FAILURE_COUNTER.inc({
+        path: remoteCallHandler.descriptor.path,
+        error_code: statusCode,
+      });
+      res.sendStatus(statusCode);
       await new Promise<void>((resolve) => res.end(resolve));
     }
   }

@@ -1,6 +1,6 @@
 {
   "name": "@selfage/service_handler",
-  "version": "5.5.0",
+  "version": "6.0.0",
   "description": "Http-based service handlers on top of expressjs.",
   "repository": {
     "type": "git",
@@ -41,6 +41,7 @@
     "@selfage/message": "^3.5.4",
     "@selfage/service_descriptor": "^4.3.0",
     "express": "^4.21.0",
-    "get-stream": "^6.0.1"
+    "get-stream": "^6.0.1",
+    "prom-client": "^15.1.3"
   }
 }
