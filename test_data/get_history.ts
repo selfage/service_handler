@@ -1,6 +1,6 @@
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
-import { WebRemoteCallDescriptor } from "@selfage/service_descriptor";
-import { WebHandlerInterface } from "@selfage/service_descriptor/handler_interface";
+import { RemoteCallDescriptor } from "@selfage/service_descriptor";
+import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
 
 export interface GetHistoryRequestBody {
   page?: number;
@@ -34,10 +34,11 @@ export let GET_HISTORY_RESPONSE: MessageDescriptor<GetHistoryResponse> = {
   ],
 };
 
-export let GET_HISTORY: WebRemoteCallDescriptor = {
+export let GET_HISTORY: RemoteCallDescriptor = {
   name: "GetHistory",
+  serviceName: "HistoryService",
   path: "/GetHistory",
-  sessionKey: "u",
+  authKey: "u",
   body: {
     messageType: GET_HISTORY_REQUEST_BODY,
   },
@@ -46,13 +47,11 @@ export let GET_HISTORY: WebRemoteCallDescriptor = {
   },
 };
 
-export abstract class GetHistoryHandlerInterface
-  implements WebHandlerInterface
-{
+export abstract class GetHistoryHandlerInterface implements HandlerInterface {
   public descriptor = GET_HISTORY;
   public abstract handle(
-    requestId: string,
+    loggingPrefix: string,
     body: GetHistoryRequestBody,
-    sessionStr: string,
+    authStr: string,
   ): Promise<GetHistoryResponse>;
 }

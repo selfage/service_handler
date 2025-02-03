@@ -79,7 +79,7 @@ TEST_RUNNER.run({
         let getCommentHandler: GetCommentsHandlerInterface =
           new (class extends GetCommentsHandlerInterface {
             public async handle(
-              requestId: string,
+              loggingPrefix: string,
               body: GetCommentsRequestBody,
             ): Promise<GetCommentsResponse> {
               capturedBody = body;
@@ -90,7 +90,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).registerNode(getCommentHandler);
+        HandlerRegister.create(app).register(getCommentHandler);
         let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/GetComments`, {
@@ -129,7 +129,7 @@ TEST_RUNNER.run({
         let getCommentHandler: GetCommentsHandlerInterface =
           new (class extends GetCommentsHandlerInterface {
             public async handle(
-              requestId: string,
+              loggingPrefix: string,
               body: GetCommentsRequestBody,
             ): Promise<GetCommentsResponse> {
               throw new Error("Should not be reachable.");
@@ -139,7 +139,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).registerNode(getCommentHandler);
+        HandlerRegister.create(app).register(getCommentHandler);
         let response = await nodeFetch(`${ORIGIN}/GetComments`, {
           method: "post",
           body: "",
@@ -163,7 +163,7 @@ TEST_RUNNER.run({
         let getHistoryHandler: GetHistoryHandlerInterface =
           new (class extends GetHistoryHandlerInterface {
             public async handle(
-              requestId: string,
+              loggingPrefix: string,
               body: GetHistoryRequestBody,
               sessionStr: string,
             ): Promise<GetHistoryResponse> {
@@ -176,7 +176,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).registerWeb(getHistoryHandler);
+        HandlerRegister.create(app).register(getHistoryHandler);
         let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/GetHistory`, {
@@ -216,7 +216,7 @@ TEST_RUNNER.run({
         let getHistoryHandler: GetHistoryHandlerInterface =
           new (class extends GetHistoryHandlerInterface {
             public async handle(
-              requestId: string,
+              loggingPrefix: string,
               body: GetHistoryRequestBody,
               sessionStr: string,
             ): Promise<GetHistoryResponse> {
@@ -227,7 +227,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).registerWeb(getHistoryHandler);
+        HandlerRegister.create(app).register(getHistoryHandler);
         let response = await nodeFetch(`${ORIGIN}/GetHistory`, {
           method: "post",
           body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
@@ -251,7 +251,7 @@ TEST_RUNNER.run({
         let uploadFileHandler: UploadFileHandlerInterface =
           new (class extends UploadFileHandlerInterface {
             public async handle(
-              requestId: string,
+              loggingPrefix: string,
               body: stream.Readable,
               metadata: UploadFileRequestMetadata,
             ): Promise<UploadFileResponse> {
@@ -270,7 +270,7 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        HandlerRegister.create(app).registerWeb(uploadFileHandler);
+        HandlerRegister.create(app).register(uploadFileHandler);
         let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
@@ -309,7 +309,7 @@ TEST_RUNNER.run({
         let uploadFileHandler: UploadFileHandlerInterface =
           new (class extends UploadFileHandlerInterface {
             public async handle(
-              requestId: string,
+              loggingPrefix: string,
               body: stream.Readable,
               metadata: UploadFileRequestMetadata,
             ): Promise<UploadFileResponse> {
@@ -320,7 +320,7 @@ TEST_RUNNER.run({
         [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).registerWeb(uploadFileHandler);
+        HandlerRegister.create(app).register(uploadFileHandler);
         let response = await nodeFetch(`${ORIGIN}/UploadFile`, {
           method: "post",
           body: fs.createReadStream(
@@ -345,7 +345,7 @@ TEST_RUNNER.run({
         let heartBeatHandler: HeartBeatHandlerInterface =
           new (class extends HeartBeatHandlerInterface {
             public async handle(
-              requestId: string,
+              loggingPrefix: string,
               body: StreamMessageReader<HeartBeatStreamRequestBody>,
               metadata: HeartBeatRequestMetadata,
             ): Promise<HeartBeatResponse> {
@@ -365,7 +365,7 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        HandlerRegister.create(app).registerWeb(heartBeatHandler);
+        HandlerRegister.create(app).register(heartBeatHandler);
         let response = deserializeMessage(
           await (
             await nodeFetch(`${ORIGIN}/HeartBeat?${searchParam}`, {

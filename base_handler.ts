@@ -14,10 +14,7 @@ import {
 } from "@selfage/message/serializer";
 import { destringifyMessage } from "@selfage/message/stringifier";
 import { PrimitveTypeForBody } from "@selfage/service_descriptor";
-import {
-  NodeHandlerInterface,
-  WebHandlerInterface,
-} from "@selfage/service_descriptor/handler_interface";
+import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
 
 let TOTAL_COUNTER = new promClient.Counter({
   name: "remote_calls_total",
@@ -35,37 +32,10 @@ export class BaseHandler {
     return new BaseHandler();
   }
 
-  public async handleWeb(
-    remoteCallHandler: WebHandlerInterface,
-    req: express.Request,
-    res: express.Response,
-  ): Promise<void> {
-    await this.handle(remoteCallHandler, req, res, (loggingPrefix, args) => {
-      if (remoteCallHandler.descriptor.sessionKey) {
-        let sessionStr = req.header(remoteCallHandler.descriptor.sessionKey);
-        if (!sessionStr) {
-          throw newUnauthorizedError(
-            `${loggingPrefix} no session string is found in the header ${remoteCallHandler.descriptor.sessionKey}.`,
-          );
-        }
-        args.push(sessionStr);
-      }
-    });
-  }
-
-  public async handleNode(
-    remoteCallHandler: NodeHandlerInterface,
-    req: express.Request,
-    res: express.Response,
-  ): Promise<void> {
-    await this.handle(remoteCallHandler, req, res, () => {});
-  }
-
   public async handle(
-    remoteCallHandler: WebHandlerInterface | NodeHandlerInterface,
+    remoteCallHandler: HandlerInterface,
     req: express.Request,
     res: express.Response,
-    getSessionStr: (loggingPrefix: string, args: Array<any>) => void,
   ): Promise<void> {
     TOTAL_COUNTER.inc({ path: remoteCallHandler.descriptor.path });
     // Always allow CORS.
@@ -81,10 +51,9 @@ export class BaseHandler {
 
     try {
       let response = await this.handleRequest(
+        loggingPrefix,
         remoteCallHandler,
         req,
-        loggingPrefix,
-        getSessionStr,
       );
       await this.sendResponse(
         res,
@@ -113,10 +82,9 @@ export class BaseHandler {
   }
 
   private async handleRequest(
-    remoteCallHandler: WebHandlerInterface | NodeHandlerInterface,
-    req: express.Request,
     loggingPrefix: string,
-    getSessionStr: (loggingPrefix: string, args: Array<any>) => void,
+    remoteCallHandler: HandlerInterface,
+    req: express.Request,
   ): Promise<any> {
     let args: any[] = [loggingPrefix];
     if (remoteCallHandler.descriptor.body.messageType) {
@@ -125,9 +93,9 @@ export class BaseHandler {
       });
       args.push(
         this.deserialize(
+          loggingPrefix,
           bodyBuffer,
           remoteCallHandler.descriptor.body.messageType,
-          loggingPrefix,
           `body`,
         ),
       );
@@ -150,22 +118,30 @@ export class BaseHandler {
     if (remoteCallHandler.descriptor.metadata) {
       args.push(
         this.destringify(
+          loggingPrefix,
           req.query[remoteCallHandler.descriptor.metadata.key] as string,
           remoteCallHandler.descriptor.metadata.type,
-          loggingPrefix,
           `metadata`,
         ),
       );
     }
 
-    getSessionStr(loggingPrefix, args);
+    if (remoteCallHandler.descriptor.authKey) {
+      let authStr = req.header(remoteCallHandler.descriptor.authKey);
+      if (!authStr) {
+        throw newUnauthorizedError(
+          `${loggingPrefix} No auth string is found in the header ${remoteCallHandler.descriptor.authKey}.`,
+        );
+      }
+      args.push(authStr);
+    }
     return remoteCallHandler.handle(...args);
   }
 
   private destringify(
+    loggingPrefix: string,
     value: string,
     messageDescriptor: MessageDescriptor<any>,
-    loggingPrefix: string,
     what: string,
   ): any {
     try {
@@ -178,9 +154,9 @@ export class BaseHandler {
   }
 
   private deserialize(
+    loggingPrefix: string,
     value: Uint8Array,
     messageDescriptor: MessageDescriptor<any>,
-    loggingPrefix: string,
     what: string,
   ): any {
     try {

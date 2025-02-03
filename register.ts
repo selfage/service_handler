@@ -1,10 +1,7 @@
 import express = require("express");
 import { BaseHandler } from "./base_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
-import {
-  NodeHandlerInterface,
-  WebHandlerInterface,
-} from "@selfage/service_descriptor/handler_interface";
+import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
 
 export class HandlerRegister {
   public static create(router: express.Router): HandlerRegister {
@@ -16,16 +13,9 @@ export class HandlerRegister {
     private baseHandler: BaseHandler,
   ) {}
 
-  public registerWeb(remoteCallHandler: WebHandlerInterface): this {
+  public register(remoteCallHandler: HandlerInterface): this {
     this.router.post(remoteCallHandler.descriptor.path, (req, res) =>
-      this.baseHandler.handleWeb(remoteCallHandler, req, res),
-    );
-    return this;
-  }
-
-  public registerNode(remoteCallHandler: NodeHandlerInterface): this {
-    this.router.post(remoteCallHandler.descriptor.path, (req, res) =>
-      this.baseHandler.handleNode(remoteCallHandler, req, res),
+      this.baseHandler.handle(remoteCallHandler, req, res),
     );
     return this;
   }

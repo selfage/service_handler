@@ -2,9 +2,9 @@ import stream = require("stream");
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import {
   PrimitveTypeForBody,
-  WebRemoteCallDescriptor,
+  RemoteCallDescriptor,
 } from "@selfage/service_descriptor";
-import { WebHandlerInterface } from "@selfage/service_descriptor/handler_interface";
+import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
 
 export interface UploadFileRequestMetadata {
   fileName: string;
@@ -43,8 +43,9 @@ export let UPLOAD_FILE_RESPONSE: MessageDescriptor<UploadFileResponse> = {
   ],
 };
 
-export let UPLOAD_FILE: WebRemoteCallDescriptor = {
+export let UPLOAD_FILE: RemoteCallDescriptor = {
   name: "UploadFile",
+  serviceName: "FileService",
   path: "/UploadFile",
   metadata: {
     key: "sd",
@@ -58,12 +59,10 @@ export let UPLOAD_FILE: WebRemoteCallDescriptor = {
   },
 };
 
-export abstract class UploadFileHandlerInterface
-  implements WebHandlerInterface
-{
+export abstract class UploadFileHandlerInterface implements HandlerInterface {
   public descriptor = UPLOAD_FILE;
   public abstract handle(
-    requestId: string,
+    loggingPrefix: string,
     body: stream.Readable,
     metadata: UploadFileRequestMetadata,
   ): Promise<UploadFileResponse>;
