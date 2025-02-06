@@ -3,6 +3,7 @@ import getStream = require("get-stream");
 import promClient = require("prom-client");
 import { StreamMessageReader } from "./stream_message_reader";
 import {
+  StatusCode,
   newBadRequestError,
   newInternalServerErrorError,
   newUnauthorizedError,
@@ -24,7 +25,7 @@ let TOTAL_COUNTER = new promClient.Counter({
 let FAILURE_COUNTER = new promClient.Counter({
   name: "remote_calls_failure",
   help: "The number of failed calls.",
-  labelNames: ["path", "error_code"],
+  labelNames: ["path", "errorCode"],
 });
 
 export class BaseHandler {
@@ -61,20 +62,11 @@ export class BaseHandler {
         remoteCallHandler.descriptor.response.messageType,
       );
     } catch (e) {
-      if (e.stack) {
-        console.error(`${loggingPrefix} ${e.stack}`);
-      } else {
-        console.error(`${loggingPrefix} ${e}`);
-      }
-      let statusCode: number;
-      if (e.statusCode) {
-        statusCode = e.statusCode;
-      } else {
-        statusCode = 500;
-      }
+      console.error(`${loggingPrefix} ${e.stack ?? e.message ?? e}`);
+      let statusCode = e.statusCode ?? StatusCode.InternalServerError;
       FAILURE_COUNTER.inc({
         path: remoteCallHandler.descriptor.path,
-        error_code: statusCode,
+        errorCode: statusCode,
       });
       res.sendStatus(statusCode);
       await new Promise<void>((resolve) => res.end(resolve));
