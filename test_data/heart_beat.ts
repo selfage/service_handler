@@ -1,7 +1,8 @@
 import { StreamMessageReader } from "../stream_message_reader";
+import { WEB_SERVICE } from "./web_service";
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import { RemoteCallDescriptor } from "@selfage/service_descriptor";
-import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
+import { RemoteCallHandlerInterface } from "@selfage/service_descriptor/remote_call_handler_interface";
 
 export interface HeartBeatStreamRequestBody {
   rnd: number;
@@ -44,7 +45,7 @@ export let HEART_BEAT_RESPONSE: MessageDescriptor<HeartBeatResponse> = {
 
 export let HEART_BEAT: RemoteCallDescriptor = {
   name: "HeartBeat",
-  serviceName: "HeartBeatService",
+  service: WEB_SERVICE,
   path: "/HeartBeat",
   metadata: {
     key: "sd",
@@ -58,7 +59,9 @@ export let HEART_BEAT: RemoteCallDescriptor = {
   },
 };
 
-export abstract class HeartBeatHandlerInterface implements HandlerInterface {
+export abstract class HeartBeatHandlerInterface
+  implements RemoteCallHandlerInterface
+{
   public descriptor = HEART_BEAT;
   public abstract handle(
     loggingPrefix: string,

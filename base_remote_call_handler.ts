@@ -15,7 +15,7 @@ import {
 } from "@selfage/message/serializer";
 import { destringifyMessage } from "@selfage/message/stringifier";
 import { PrimitveTypeForBody } from "@selfage/service_descriptor";
-import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
+import { RemoteCallHandlerInterface } from "@selfage/service_descriptor/remote_call_handler_interface";
 
 let TOTAL_COUNTER = new promClient.Counter({
   name: "remote_calls_total",
@@ -28,13 +28,13 @@ let FAILURE_COUNTER = new promClient.Counter({
   labelNames: ["path", "errorCode"],
 });
 
-export class BaseHandler {
-  public static create(): BaseHandler {
-    return new BaseHandler();
+export class BaseRemoteCallHandler {
+  public static create(): BaseRemoteCallHandler {
+    return new BaseRemoteCallHandler();
   }
 
   public async handle(
-    remoteCallHandler: HandlerInterface,
+    remoteCallHandler: RemoteCallHandlerInterface,
     req: express.Request,
     res: express.Response,
   ): Promise<void> {
@@ -75,7 +75,7 @@ export class BaseHandler {
 
   private async handleRequest(
     loggingPrefix: string,
-    remoteCallHandler: HandlerInterface,
+    remoteCallHandler: RemoteCallHandlerInterface,
     req: express.Request,
   ): Promise<any> {
     let args: any[] = [loggingPrefix];

@@ -1,6 +1,7 @@
+import { NODE_SERVICE } from "./node_service";
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import { RemoteCallDescriptor } from "@selfage/service_descriptor";
-import { HandlerInterface } from "@selfage/service_descriptor/handler_interface";
+import { RemoteCallHandlerInterface } from "@selfage/service_descriptor/remote_call_handler_interface";
 
 export interface GetCommentsRequestBody {
   videoId?: string;
@@ -36,7 +37,7 @@ export let GET_COMMENTS_RESPONSE: MessageDescriptor<GetCommentsResponse> = {
 
 export let GET_COMMENTS: RemoteCallDescriptor = {
   name: "GetComments",
-  serviceName: "CommentService",
+  service: NODE_SERVICE,
   path: "/GetComments",
   body: {
     messageType: GET_COMMENTS_REQUEST_BODY,
@@ -46,7 +47,9 @@ export let GET_COMMENTS: RemoteCallDescriptor = {
   },
 };
 
-export abstract class GetCommentsHandlerInterface implements HandlerInterface {
+export abstract class GetCommentsHandlerInterface
+  implements RemoteCallHandlerInterface
+{
   public descriptor = GET_COMMENTS;
   public abstract handle(
     loggingPrefix: string,

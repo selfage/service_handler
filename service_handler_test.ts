@@ -1,11 +1,9 @@
-import express = require("express");
 import fs = require("fs");
 import getStream = require("get-stream");
-import http = require("http");
 import path = require("path");
 import stream = require("stream");
 import nodeFetch from "node-fetch";
-import { HandlerRegister } from "./register";
+import { ServiceHandler } from "./service_handler";
 import { StreamMessageReader } from "./stream_message_reader";
 import {
   GET_COMMENTS_REQUEST_BODY,
@@ -30,6 +28,7 @@ import {
   HeartBeatResponse,
   HeartBeatStreamRequestBody,
 } from "./test_data/heart_beat";
+import { NODE_SERVICE } from "./test_data/node_service";
 import {
   UPLOAD_FILE_REQUEST_METADATA,
   UPLOAD_FILE_RESPONSE,
@@ -37,42 +36,30 @@ import {
   UploadFileRequestMetadata,
   UploadFileResponse,
 } from "./test_data/upload_file";
+import { WEB_SERVICE } from "./test_data/web_service";
 import {
   deserializeMessage,
   serializeMessage,
 } from "@selfage/message/serializer";
 import { stringifyMessage } from "@selfage/message/stringifier";
 import { eqMessage } from "@selfage/message/test_matcher";
-import { assertThat, eq, isArray } from "@selfage/test_matcher";
+import {
+  assertThat,
+  assertThrow,
+  eq,
+  eqError,
+  isArray,
+} from "@selfage/test_matcher";
 import { TEST_RUNNER, TestCase } from "@selfage/test_runner";
 
-let HOST_NAME = "localhost";
-let PORT = 8000;
-let ORIGIN = `http://${HOST_NAME}:${PORT}`;
-
-async function createServer(): Promise<[http.Server, express.Express]> {
-  let app = express();
-  let server = http.createServer(app);
-  await new Promise<void>((resolve) => {
-    server.listen({ host: HOST_NAME, port: PORT }, () => resolve());
-  });
-  return [server, app];
-}
-
-async function closeServer(server?: http.Server): Promise<void> {
-  if (server) {
-    await new Promise<void>((resolve) => {
-      server.close(() => resolve());
-    });
-  }
-}
+let ORIGIN = "http://localhost";
 
 TEST_RUNNER.run({
   name: "BaseHandlerTest",
   cases: [
     new (class implements TestCase {
       public name = "GetComments";
-      private server: http.Server;
+      private service: ServiceHandler;
       public async execute() {
         // Prepare
         let capturedBody: GetCommentsRequestBody;
@@ -86,14 +73,15 @@ TEST_RUNNER.run({
               return { texts: ["aaaa", "bbb", "cc"] };
             }
           })();
-        let app: express.Express;
-        [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getCommentHandler);
+        this.service = await ServiceHandler.create(NODE_SERVICE)
+          .createHttpServer()
+          .add(getCommentHandler)
+          .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`${ORIGIN}/GetComments`, {
+            await nodeFetch(`${ORIGIN}:${NODE_SERVICE.port}/GetComments`, {
               method: "post",
               body: serializeMessage(
                 { videoId: "idx" },
@@ -118,12 +106,12 @@ TEST_RUNNER.run({
         );
       }
       public async tearDown() {
-        await closeServer(this.server);
+        await this.service.stop();
       }
     })(),
     new (class implements TestCase {
       public name = "GetCommentsNoRequestBody";
-      private server: http.Server;
+      private service: ServiceHandler;
       public async execute() {
         // Prepare
         let getCommentHandler: GetCommentsHandlerInterface =
@@ -135,27 +123,64 @@ TEST_RUNNER.run({
               throw new Error("Should not be reachable.");
             }
           })();
-        let app: express.Express;
-        [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getCommentHandler);
-        let response = await nodeFetch(`${ORIGIN}/GetComments`, {
-          method: "post",
-          body: "",
-          headers: { "Content-Type": "text/plain" },
-        });
+        this.service = await ServiceHandler.create(NODE_SERVICE)
+          .createHttpServer()
+          .add(getCommentHandler)
+          .start();
+        let response = await nodeFetch(
+          `${ORIGIN}:${NODE_SERVICE.port}/GetComments`,
+          {
+            method: "post",
+            body: "",
+            headers: { "Content-Type": "text/plain" },
+          },
+        );
 
         // Verify
         assertThat(response.status, eq(400), "status code");
       }
       public async tearDown() {
-        await closeServer(this.server);
+        await this.service.stop();
+      }
+    })(),
+    new (class implements TestCase {
+      public name = "GetCommentsHandlerAddedToWrongService";
+      public async execute() {
+        // Prepare
+        let getCommentHandler: GetCommentsHandlerInterface =
+          new (class extends GetCommentsHandlerInterface {
+            public async handle(
+              loggingPrefix: string,
+              body: GetCommentsRequestBody,
+            ): Promise<GetCommentsResponse> {
+              throw new Error("Should not be reachable.");
+            }
+          })();
+
+        // Execute
+        let error = assertThrow(() =>
+          ServiceHandler.create(WEB_SERVICE)
+            .createHttpServer()
+            .add(getCommentHandler),
+        );
+
+        // Verify
+        assertThat(
+          error,
+          eqError(
+            new Error(
+              "The remote call handler GetComments is defined in service NodeService but being added to service WebService.",
+            ),
+          ),
+          "error",
+        );
       }
     })(),
     new (class implements TestCase {
       public name = "GetHistory";
-      private server: http.Server;
+      private service: ServiceHandler;
       public async execute() {
         // Prepare
         let sessionStrCaptured: string;
@@ -172,14 +197,15 @@ TEST_RUNNER.run({
               return { videos: ["id1", "id2", "id3"] };
             }
           })();
-        let app: express.Express;
-        [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getHistoryHandler);
+        this.service = await ServiceHandler.create(WEB_SERVICE)
+          .createHttpServer()
+          .add(getHistoryHandler)
+          .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`${ORIGIN}/GetHistory`, {
+            await nodeFetch(`${ORIGIN}:${WEB_SERVICE.port}/GetHistory`, {
               method: "post",
               body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
               headers: {
@@ -205,12 +231,12 @@ TEST_RUNNER.run({
         );
       }
       public async tearDown() {
-        await closeServer(this.server);
+        await this.service.stop();
       }
     })(),
     new (class implements TestCase {
       public name = "GetHistoryNoSession";
-      private server: http.Server;
+      private service: ServiceHandler;
       public async execute() {
         // Prepare
         let getHistoryHandler: GetHistoryHandlerInterface =
@@ -223,27 +249,31 @@ TEST_RUNNER.run({
               throw new Error("Should not be reachable.");
             }
           })();
-        let app: express.Express;
-        [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(getHistoryHandler);
-        let response = await nodeFetch(`${ORIGIN}/GetHistory`, {
-          method: "post",
-          body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
-          headers: { "Content-Type": "application/octet-stream" },
-        });
+        this.service = await ServiceHandler.create(WEB_SERVICE)
+          .createHttpServer()
+          .add(getHistoryHandler)
+          .start();
+        let response = await nodeFetch(
+          `${ORIGIN}:${WEB_SERVICE.port}/GetHistory`,
+          {
+            method: "post",
+            body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
+            headers: { "Content-Type": "application/octet-stream" },
+          },
+        );
 
         // Verify
         assertThat(response.status, eq(401), "status code");
       }
       public async tearDown() {
-        await closeServer(this.server);
+        await this.service.stop();
       }
     })(),
     new (class implements TestCase {
       public name = "UploadFile";
-      private server: http.Server;
+      private service: ServiceHandler;
       public async execute() {
         // Prepare
         let bodyAsString: string;
@@ -260,8 +290,6 @@ TEST_RUNNER.run({
               return { byteSize: 121, success: true };
             }
           })();
-        let app: express.Express;
-        [this.server, app] = await createServer();
 
         let searchParam = new URLSearchParams();
         searchParam.set(
@@ -270,16 +298,22 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        HandlerRegister.create(app).register(uploadFileHandler);
+        this.service = await ServiceHandler.create(WEB_SERVICE)
+          .createHttpServer()
+          .add(uploadFileHandler)
+          .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`${ORIGIN}/UploadFile?${searchParam}`, {
-              method: "post",
-              body: fs.createReadStream(
-                path.join(__dirname, "test_data", "text.txt"),
-              ),
-              headers: { "Content-Type": "application/octet-stream" },
-            })
+            await nodeFetch(
+              `${ORIGIN}:${WEB_SERVICE.port}/UploadFile?${searchParam}`,
+              {
+                method: "post",
+                body: fs.createReadStream(
+                  path.join(__dirname, "test_data", "text.txt"),
+                ),
+                headers: { "Content-Type": "application/octet-stream" },
+              },
+            )
           ).buffer(),
           UPLOAD_FILE_RESPONSE,
         );
@@ -298,12 +332,12 @@ TEST_RUNNER.run({
         );
       }
       public async tearDown() {
-        await closeServer(this.server);
+        await this.service.stop();
       }
     })(),
     new (class implements TestCase {
       public name = "UploadFileNoRequestMetadata";
-      private server: http.Server;
+      private service: ServiceHandler;
       public async execute() {
         // Prepare
         let uploadFileHandler: UploadFileHandlerInterface =
@@ -316,29 +350,33 @@ TEST_RUNNER.run({
               throw new Error("Should not be reachable.");
             }
           })();
-        let app: express.Express;
-        [this.server, app] = await createServer();
 
         // Execute
-        HandlerRegister.create(app).register(uploadFileHandler);
-        let response = await nodeFetch(`${ORIGIN}/UploadFile`, {
-          method: "post",
-          body: fs.createReadStream(
-            path.join(__dirname, "test_data", "text.txt"),
-          ),
-          headers: { "Content-Type": "application/octet-stream" },
-        });
+        this.service = await ServiceHandler.create(WEB_SERVICE)
+          .createHttpServer()
+          .add(uploadFileHandler)
+          .start();
+        let response = await nodeFetch(
+          `${ORIGIN}:${WEB_SERVICE.port}/UploadFile`,
+          {
+            method: "post",
+            body: fs.createReadStream(
+              path.join(__dirname, "test_data", "text.txt"),
+            ),
+            headers: { "Content-Type": "application/octet-stream" },
+          },
+        );
 
         // Verify
         assertThat(response.status, eq(400), "status code");
       }
       public async tearDown() {
-        await closeServer(this.server);
+        await this.service.stop();
       }
     })(),
     new (class implements TestCase {
       public name = "HeartBeat";
-      private server: http.Server;
+      private service: ServiceHandler;
       public async execute() {
         // Prepare
         let messageBodies = new Array<HeartBeatStreamRequestBody>();
@@ -355,9 +393,6 @@ TEST_RUNNER.run({
               return {};
             }
           })();
-        let app: express.Express;
-        [this.server, app] = await createServer();
-
         let searchParam = new URLSearchParams();
         searchParam.set(
           "sd",
@@ -365,16 +400,26 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        HandlerRegister.create(app).register(heartBeatHandler);
+        this.service = await ServiceHandler.create(WEB_SERVICE)
+          .createHttpServer()
+          .add(heartBeatHandler)
+          .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`${ORIGIN}/HeartBeat?${searchParam}`, {
-              method: "post",
-              body: fs.createReadStream(
-                path.join(__dirname, "test_data", "heartbeat_stream_data.txt"),
-              ),
-              headers: { "Content-Type": "application/octet-stream" },
-            })
+            await nodeFetch(
+              `${ORIGIN}:${WEB_SERVICE.port}/HeartBeat?${searchParam}`,
+              {
+                method: "post",
+                body: fs.createReadStream(
+                  path.join(
+                    __dirname,
+                    "test_data",
+                    "heartbeat_stream_data.txt",
+                  ),
+                ),
+                headers: { "Content-Type": "application/octet-stream" },
+              },
+            )
           ).buffer(),
           HEART_BEAT_RESPONSE,
         );
@@ -407,7 +452,7 @@ TEST_RUNNER.run({
         assertThat(response, eqMessage({}, HEART_BEAT_RESPONSE), "response");
       }
       public async tearDown() {
-        await closeServer(this.server);
+        await this.service.stop();
       }
     })(),
   ],
