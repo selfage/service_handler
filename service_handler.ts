@@ -3,35 +3,44 @@ import http = require("http");
 import https = require("https");
 import { BaseRemoteCallHandler } from "./base_remote_call_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
-import { ServiceDescriptor } from "@selfage/service_descriptor";
+import {
+  HttpServiceDescriptor,
+  HttpsServiceDescriptor,
+  ServiceDescriptor,
+} from "@selfage/service_descriptor";
 import { RemoteCallHandlerInterface } from "@selfage/service_descriptor/remote_call_handler_interface";
 
 export class ServiceHandler {
-  public static create(serviceDescriptor: ServiceDescriptor): ServiceHandler {
+  public static createHttpServer(
+    serviceDescriptor: HttpServiceDescriptor,
+  ): ServiceHandler {
     return new ServiceHandler(
+      http.createServer(),
       serviceDescriptor,
       BaseRemoteCallHandler.create(),
     );
   }
 
-  private server: http.Server | https.Server;
+  public static createHttpsServer(
+    serviceDescriptor: HttpsServiceDescriptor,
+    options: https.ServerOptions,
+  ): ServiceHandler {
+    return new ServiceHandler(
+      https.createServer(options),
+      serviceDescriptor,
+      BaseRemoteCallHandler.create(),
+    );
+  }
+
   private app = express();
 
   public constructor(
+    private server: http.Server | https.Server,
     private serviceDescriptor: ServiceDescriptor,
     private baseHandler: BaseRemoteCallHandler,
-  ) {}
-
-  public createHttpServer(): this {
-    this.server = http.createServer(this.app);
+  ) {
+    this.server.on("request", this.app);
     this.addCorsAllowedPreflightHandler();
-    return this;
-  }
-
-  public createHttpsServer(options: https.ServerOptions): this {
-    this.server = https.createServer(options, this.app);
-    this.addCorsAllowedPreflightHandler();
-    return this;
   }
 
   private addCorsAllowedPreflightHandler(): void {

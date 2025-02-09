@@ -1,6 +1,6 @@
 {
   "name": "@selfage/service_handler",
-  "version": "7.2.1",
+  "version": "7.2.2",
   "description": "Http-based service handlers on top of expressjs.",
   "repository": {
     "type": "git",
@@ -39,7 +39,7 @@
   "dependencies": {
     "@selfage/http_error": "^1.1.2",
     "@selfage/message": "^3.5.7",
-    "@selfage/service_descriptor": "^5.2.1",
+    "@selfage/service_descriptor": "^5.2.3",
     "express": "^4.21.0",
     "get-stream": "^6.0.1",
     "prom-client": "^15.1.3"

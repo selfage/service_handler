@@ -75,8 +75,7 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.create(NODE_SERVICE)
-          .createHttpServer()
+        this.service = await ServiceHandler.createHttpServer(NODE_SERVICE)
           .add(getCommentHandler)
           .start();
         let response = deserializeMessage(
@@ -125,8 +124,7 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.create(NODE_SERVICE)
-          .createHttpServer()
+        this.service = await ServiceHandler.createHttpServer(NODE_SERVICE)
           .add(getCommentHandler)
           .start();
         let response = await nodeFetch(`http://${HOSTNAME}:8080/GetComments`, {
@@ -158,9 +156,7 @@ TEST_RUNNER.run({
 
         // Execute
         let error = assertThrow(() =>
-          ServiceHandler.create(WEB_SERVICE)
-            .createHttpServer()
-            .add(getCommentHandler),
+          ServiceHandler.createHttpServer(WEB_SERVICE).add(getCommentHandler),
         );
 
         // Verify
@@ -196,8 +192,7 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.create(WEB_SERVICE)
-          .createHttpServer()
+        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(getHistoryHandler)
           .start();
         let response = deserializeMessage(
@@ -248,8 +243,7 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.create(WEB_SERVICE)
-          .createHttpServer()
+        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(getHistoryHandler)
           .start();
         let response = await nodeFetch(`http://${HOSTNAME}:8080/GetHistory`, {
@@ -292,19 +286,21 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        this.service = await ServiceHandler.create(WEB_SERVICE)
-          .createHttpServer()
+        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(uploadFileHandler)
           .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`http://${HOSTNAME}:8080/UploadFile?${searchParam}`, {
-              method: "post",
-              body: fs.createReadStream(
-                path.join(__dirname, "test_data", "text.txt"),
-              ),
-              headers: { "Content-Type": "application/octet-stream" },
-            })
+            await nodeFetch(
+              `http://${HOSTNAME}:8080/UploadFile?${searchParam}`,
+              {
+                method: "post",
+                body: fs.createReadStream(
+                  path.join(__dirname, "test_data", "text.txt"),
+                ),
+                headers: { "Content-Type": "application/octet-stream" },
+              },
+            )
           ).buffer(),
           UPLOAD_FILE_RESPONSE,
         );
@@ -343,8 +339,7 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.create(WEB_SERVICE)
-          .createHttpServer()
+        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(uploadFileHandler)
           .start();
         let response = await nodeFetch(`http://${HOSTNAME}:8080/UploadFile`, {
@@ -388,19 +383,25 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        this.service = await ServiceHandler.create(WEB_SERVICE)
-          .createHttpServer()
+        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(heartBeatHandler)
           .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`http://${HOSTNAME}:8080/HeartBeat?${searchParam}`, {
-              method: "post",
-              body: fs.createReadStream(
-                path.join(__dirname, "test_data", "heartbeat_stream_data.txt"),
-              ),
-              headers: { "Content-Type": "application/octet-stream" },
-            })
+            await nodeFetch(
+              `http://${HOSTNAME}:8080/HeartBeat?${searchParam}`,
+              {
+                method: "post",
+                body: fs.createReadStream(
+                  path.join(
+                    __dirname,
+                    "test_data",
+                    "heartbeat_stream_data.txt",
+                  ),
+                ),
+                headers: { "Content-Type": "application/octet-stream" },
+              },
+            )
           ).buffer(),
           HEART_BEAT_RESPONSE,
         );
