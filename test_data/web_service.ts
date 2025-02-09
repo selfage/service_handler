@@ -5,4 +5,5 @@ export let WEB_SERVICE: ServiceDescriptor = {
   name: "WebService",
   clientType: ClientType.WEB,
   port: 8080,
+  protocol: "http://",
 };

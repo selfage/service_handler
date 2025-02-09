@@ -52,7 +52,7 @@ import {
 } from "@selfage/test_matcher";
 import { TEST_RUNNER, TestCase } from "@selfage/test_runner";
 
-let ORIGIN = "http://localhost";
+let HOSTNAME = "localhost";
 
 TEST_RUNNER.run({
   name: "BaseHandlerTest",
@@ -81,7 +81,7 @@ TEST_RUNNER.run({
           .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`${ORIGIN}:${NODE_SERVICE.port}/GetComments`, {
+            await nodeFetch(`http://${HOSTNAME}:8080/GetComments`, {
               method: "post",
               body: serializeMessage(
                 { videoId: "idx" },
@@ -129,14 +129,11 @@ TEST_RUNNER.run({
           .createHttpServer()
           .add(getCommentHandler)
           .start();
-        let response = await nodeFetch(
-          `${ORIGIN}:${NODE_SERVICE.port}/GetComments`,
-          {
-            method: "post",
-            body: "",
-            headers: { "Content-Type": "text/plain" },
-          },
-        );
+        let response = await nodeFetch(`http://${HOSTNAME}:8080/GetComments`, {
+          method: "post",
+          body: "",
+          headers: { "Content-Type": "text/plain" },
+        });
 
         // Verify
         assertThat(response.status, eq(400), "status code");
@@ -205,7 +202,7 @@ TEST_RUNNER.run({
           .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(`${ORIGIN}:${WEB_SERVICE.port}/GetHistory`, {
+            await nodeFetch(`http://${HOSTNAME}:8080/GetHistory`, {
               method: "post",
               body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
               headers: {
@@ -255,14 +252,11 @@ TEST_RUNNER.run({
           .createHttpServer()
           .add(getHistoryHandler)
           .start();
-        let response = await nodeFetch(
-          `${ORIGIN}:${WEB_SERVICE.port}/GetHistory`,
-          {
-            method: "post",
-            body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
-            headers: { "Content-Type": "application/octet-stream" },
-          },
-        );
+        let response = await nodeFetch(`http://${HOSTNAME}:8080/GetHistory`, {
+          method: "post",
+          body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
+          headers: { "Content-Type": "application/octet-stream" },
+        });
 
         // Verify
         assertThat(response.status, eq(401), "status code");
@@ -304,16 +298,13 @@ TEST_RUNNER.run({
           .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(
-              `${ORIGIN}:${WEB_SERVICE.port}/UploadFile?${searchParam}`,
-              {
-                method: "post",
-                body: fs.createReadStream(
-                  path.join(__dirname, "test_data", "text.txt"),
-                ),
-                headers: { "Content-Type": "application/octet-stream" },
-              },
-            )
+            await nodeFetch(`http://${HOSTNAME}:8080/UploadFile?${searchParam}`, {
+              method: "post",
+              body: fs.createReadStream(
+                path.join(__dirname, "test_data", "text.txt"),
+              ),
+              headers: { "Content-Type": "application/octet-stream" },
+            })
           ).buffer(),
           UPLOAD_FILE_RESPONSE,
         );
@@ -356,16 +347,13 @@ TEST_RUNNER.run({
           .createHttpServer()
           .add(uploadFileHandler)
           .start();
-        let response = await nodeFetch(
-          `${ORIGIN}:${WEB_SERVICE.port}/UploadFile`,
-          {
-            method: "post",
-            body: fs.createReadStream(
-              path.join(__dirname, "test_data", "text.txt"),
-            ),
-            headers: { "Content-Type": "application/octet-stream" },
-          },
-        );
+        let response = await nodeFetch(`http://${HOSTNAME}:8080/UploadFile`, {
+          method: "post",
+          body: fs.createReadStream(
+            path.join(__dirname, "test_data", "text.txt"),
+          ),
+          headers: { "Content-Type": "application/octet-stream" },
+        });
 
         // Verify
         assertThat(response.status, eq(400), "status code");
@@ -406,20 +394,13 @@ TEST_RUNNER.run({
           .start();
         let response = deserializeMessage(
           await (
-            await nodeFetch(
-              `${ORIGIN}:${WEB_SERVICE.port}/HeartBeat?${searchParam}`,
-              {
-                method: "post",
-                body: fs.createReadStream(
-                  path.join(
-                    __dirname,
-                    "test_data",
-                    "heartbeat_stream_data.txt",
-                  ),
-                ),
-                headers: { "Content-Type": "application/octet-stream" },
-              },
-            )
+            await nodeFetch(`http://${HOSTNAME}:8080/HeartBeat?${searchParam}`, {
+              method: "post",
+              body: fs.createReadStream(
+                path.join(__dirname, "test_data", "heartbeat_stream_data.txt"),
+              ),
+              headers: { "Content-Type": "application/octet-stream" },
+            })
           ).buffer(),
           HEART_BEAT_RESPONSE,
         );
