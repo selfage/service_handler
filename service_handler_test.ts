@@ -77,7 +77,7 @@ TEST_RUNNER.run({
         // Execute
         this.service = await ServiceHandler.createHttpServer(NODE_SERVICE)
           .add(getCommentHandler)
-          .start();
+          .start(8080);
         let response = deserializeMessage(
           await (
             await nodeFetch(`http://${HOSTNAME}:8080/GetComments`, {
@@ -126,7 +126,7 @@ TEST_RUNNER.run({
         // Execute
         this.service = await ServiceHandler.createHttpServer(NODE_SERVICE)
           .add(getCommentHandler)
-          .start();
+          .start(8080);
         let response = await nodeFetch(`http://${HOSTNAME}:8080/GetComments`, {
           method: "post",
           body: "",
@@ -194,7 +194,7 @@ TEST_RUNNER.run({
         // Execute
         this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(getHistoryHandler)
-          .start();
+          .start(8080);
         let response = deserializeMessage(
           await (
             await nodeFetch(`http://${HOSTNAME}:8080/GetHistory`, {
@@ -245,7 +245,7 @@ TEST_RUNNER.run({
         // Execute
         this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(getHistoryHandler)
-          .start();
+          .start(8080);
         let response = await nodeFetch(`http://${HOSTNAME}:8080/GetHistory`, {
           method: "post",
           body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
@@ -288,7 +288,7 @@ TEST_RUNNER.run({
         // Execute
         this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(uploadFileHandler)
-          .start();
+          .start(8080);
         let response = deserializeMessage(
           await (
             await nodeFetch(
@@ -341,7 +341,7 @@ TEST_RUNNER.run({
         // Execute
         this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(uploadFileHandler)
-          .start();
+          .start(8080);
         let response = await nodeFetch(`http://${HOSTNAME}:8080/UploadFile`, {
           method: "post",
           body: fs.createReadStream(
@@ -385,7 +385,7 @@ TEST_RUNNER.run({
         // Execute
         this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
           .add(heartBeatHandler)
-          .start();
+          .start(8080);
         let response = deserializeMessage(
           await (
             await nodeFetch(

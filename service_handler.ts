@@ -1,6 +1,7 @@
 import express = require("express");
 import http = require("http");
 import https = require("https");
+import promClient = require("prom-client");
 import { BaseRemoteCallHandler } from "./base_remote_call_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
 import {
@@ -40,12 +41,27 @@ export class ServiceHandler {
     private baseHandler: BaseRemoteCallHandler,
   ) {
     this.server.on("request", this.app);
-    this.addCorsAllowedPreflightHandler();
   }
 
-  private addCorsAllowedPreflightHandler(): void {
+  public addCorsAllowedPreflightHandler(): this {
     let handler = new CorsAllowedPreflightHandler();
     this.app.options("/*", (req, res) => handler.handle(res));
+    return this;
+  }
+
+  public addMetricsHandler(): this {
+    this.app.get("/metricsz", async (req, res) => {
+      res.setHeader("Content-Type", "text/plain");
+      res.end(await promClient.register.metrics());
+    });
+    return this;
+  }
+
+  public addHealthCheckHandler(): this {
+    this.app.get("/healthz", (req, res) => {
+      res.end("OK");
+    });
+    return this;
   }
 
   public add(remoteCallHandler: RemoteCallHandlerInterface): this {
@@ -60,12 +76,12 @@ export class ServiceHandler {
     return this;
   }
 
-  public async start(): Promise<this> {
+  public async start(port: number): Promise<this> {
     await new Promise<void>((resolve) => {
-      this.server.listen(this.serviceDescriptor.port, () => resolve());
+      this.server.listen(port, () => resolve());
     });
     console.log(
-      `Service ${this.serviceDescriptor.name} is listening on port ${this.serviceDescriptor.port}.`,
+      `Service ${this.serviceDescriptor.name} is listening on port ${port}.`,
     );
     return this;
   }
