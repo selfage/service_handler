@@ -1,4 +1,4 @@
-import { NODE_SERVICE } from "./node_service";
+import { NODE_SERVICE } from "./services";
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import { RemoteCallDescriptor } from "@selfage/service_descriptor";
 import { RemoteCallHandlerInterface } from "@selfage/service_descriptor/remote_call_handler_interface";

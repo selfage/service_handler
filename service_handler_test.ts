@@ -1,5 +1,6 @@
 import fs = require("fs");
 import getStream = require("get-stream");
+import http = require("http");
 import path = require("path");
 import stream = require("stream");
 import nodeFetch from "node-fetch";
@@ -28,7 +29,7 @@ import {
   HeartBeatResponse,
   HeartBeatStreamRequestBody,
 } from "./test_data/heart_beat";
-import { NODE_SERVICE } from "./test_data/node_service";
+import { NODE_SERVICE, WEB_SERVICE } from "./test_data/services";
 import {
   UPLOAD_FILE_REQUEST_METADATA,
   UPLOAD_FILE_RESPONSE,
@@ -36,7 +37,6 @@ import {
   UploadFileRequestMetadata,
   UploadFileResponse,
 } from "./test_data/upload_file";
-import { WEB_SERVICE } from "./test_data/web_service";
 import {
   deserializeMessage,
   serializeMessage,
@@ -75,12 +75,12 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.createHttpServer(NODE_SERVICE)
-          .add(getCommentHandler)
-          .start(8080);
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(NODE_SERVICE).add(getCommentHandler);
+        await this.service.start(8080);
         let response = deserializeMessage(
           await (
-            await nodeFetch(`http://${HOSTNAME}:8080/GetComments`, {
+            await nodeFetch(`http://${HOSTNAME}:8080/node/GetComments`, {
               method: "post",
               body: serializeMessage(
                 { videoId: "idx" },
@@ -124,14 +124,17 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.createHttpServer(NODE_SERVICE)
-          .add(getCommentHandler)
-          .start(8080);
-        let response = await nodeFetch(`http://${HOSTNAME}:8080/GetComments`, {
-          method: "post",
-          body: "",
-          headers: { "Content-Type": "text/plain" },
-        });
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(NODE_SERVICE).add(getCommentHandler);
+        await this.service.start(8080);
+        let response = await nodeFetch(
+          `http://${HOSTNAME}:8080/node/GetComments`,
+          {
+            method: "post",
+            body: "",
+            headers: { "Content-Type": "text/plain" },
+          },
+        );
 
         // Verify
         assertThat(response.status, eq(400), "status code");
@@ -155,8 +158,9 @@ TEST_RUNNER.run({
           })();
 
         // Execute
+        let service = ServiceHandler.create(http.createServer());
         let error = assertThrow(() =>
-          ServiceHandler.createHttpServer(WEB_SERVICE).add(getCommentHandler),
+          service.addHandlerRegister(WEB_SERVICE).add(getCommentHandler),
         );
 
         // Verify
@@ -192,12 +196,12 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
-          .add(getHistoryHandler)
-          .start(8080);
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(WEB_SERVICE).add(getHistoryHandler);
+        await this.service.start(8080);
         let response = deserializeMessage(
           await (
-            await nodeFetch(`http://${HOSTNAME}:8080/GetHistory`, {
+            await nodeFetch(`http://${HOSTNAME}:8080/web/GetHistory`, {
               method: "post",
               body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
               headers: {
@@ -243,14 +247,17 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
-          .add(getHistoryHandler)
-          .start(8080);
-        let response = await nodeFetch(`http://${HOSTNAME}:8080/GetHistory`, {
-          method: "post",
-          body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
-          headers: { "Content-Type": "application/octet-stream" },
-        });
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(WEB_SERVICE).add(getHistoryHandler);
+        await this.service.start(8080);
+        let response = await nodeFetch(
+          `http://${HOSTNAME}:8080/web/GetHistory`,
+          {
+            method: "post",
+            body: serializeMessage({ page: 10 }, GET_HISTORY_REQUEST_BODY),
+            headers: { "Content-Type": "application/octet-stream" },
+          },
+        );
 
         // Verify
         assertThat(response.status, eq(401), "status code");
@@ -286,13 +293,13 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
-          .add(uploadFileHandler)
-          .start(8080);
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(WEB_SERVICE).add(uploadFileHandler);
+        await this.service.start(8080);
         let response = deserializeMessage(
           await (
             await nodeFetch(
-              `http://${HOSTNAME}:8080/UploadFile?${searchParam}`,
+              `http://${HOSTNAME}:8080/web/UploadFile?${searchParam}`,
               {
                 method: "post",
                 body: fs.createReadStream(
@@ -339,16 +346,19 @@ TEST_RUNNER.run({
           })();
 
         // Execute
-        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
-          .add(uploadFileHandler)
-          .start(8080);
-        let response = await nodeFetch(`http://${HOSTNAME}:8080/UploadFile`, {
-          method: "post",
-          body: fs.createReadStream(
-            path.join(__dirname, "test_data", "text.txt"),
-          ),
-          headers: { "Content-Type": "application/octet-stream" },
-        });
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(WEB_SERVICE).add(uploadFileHandler);
+        await this.service.start(8080);
+        let response = await nodeFetch(
+          `http://${HOSTNAME}:8080/web/UploadFile`,
+          {
+            method: "post",
+            body: fs.createReadStream(
+              path.join(__dirname, "test_data", "text.txt"),
+            ),
+            headers: { "Content-Type": "application/octet-stream" },
+          },
+        );
 
         // Verify
         assertThat(response.status, eq(400), "status code");
@@ -383,13 +393,13 @@ TEST_RUNNER.run({
         );
 
         // Execute
-        this.service = await ServiceHandler.createHttpServer(WEB_SERVICE)
-          .add(heartBeatHandler)
-          .start(8080);
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(WEB_SERVICE).add(heartBeatHandler);
+        await this.service.start(8080);
         let response = deserializeMessage(
           await (
             await nodeFetch(
-              `http://${HOSTNAME}:8080/HeartBeat?${searchParam}`,
+              `http://${HOSTNAME}:8080/web/HeartBeat?${searchParam}`,
               {
                 method: "post",
                 body: fs.createReadStream(

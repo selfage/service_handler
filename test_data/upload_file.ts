@@ -1,5 +1,5 @@
 import stream = require("stream");
-import { WEB_SERVICE } from "./web_service";
+import { WEB_SERVICE } from "./services";
 import { MessageDescriptor, PrimitiveType } from "@selfage/message/descriptor";
 import {
   PrimitveTypeForBody,
