@@ -1,6 +1,7 @@
 import promClient = require("prom-client");
 import EventEmitter from "events";
 import { StatusCode } from "@selfage/http_error";
+import { RemoteCallDescriptor } from "@selfage/service_descriptor";
 
 let TOTAL_COUNTER = new promClient.Counter({
   name: "processing_tasks_total",
@@ -19,16 +20,19 @@ export interface ProcessTaskHandlerWrapper {
 
 export class ProcessTaskHandlerWrapper extends EventEmitter {
   public static create(
+    descriptor: RemoteCallDescriptor,
     initialBackoffTimeMs: number,
     maxBackkoffTimeMs: number,
   ): ProcessTaskHandlerWrapper {
     return new ProcessTaskHandlerWrapper(
+      descriptor,
       initialBackoffTimeMs,
       maxBackkoffTimeMs,
     );
   }
 
   public constructor(
+    private descriptor: RemoteCallDescriptor,
     private initialBackoffTimeMs: number,
     private maxBackkoffTimeMs: number,
   ) {
@@ -44,19 +48,18 @@ export class ProcessTaskHandlerWrapper extends EventEmitter {
 
   public async wrap(
     loggingPrefix: string,
-    path: string,
     claimTaskFn: () => Promise<void>,
     processFn: () => Promise<void>,
   ): Promise<void> {
     await claimTaskFn();
-    this.processAndCatchError(loggingPrefix, path, processFn);
+    this.processAndCatchError(loggingPrefix, processFn);
   }
 
   private async processAndCatchError(
     loggingPrefix: string,
-    path: string,
     processFn: () => Promise<void>,
   ): Promise<void> {
+    let path = this.descriptor.service.path + this.descriptor.path;
     TOTAL_COUNTER.inc({ path });
     try {
       await processFn();
