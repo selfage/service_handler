@@ -29,9 +29,11 @@ let FAILURE_COUNTER = new promClient.Counter({
 });
 
 export class BaseRemoteCallHandler {
-  public static create(): BaseRemoteCallHandler {
-    return new BaseRemoteCallHandler();
+  public static create(allowOrigin: string): BaseRemoteCallHandler {
+    return new BaseRemoteCallHandler(allowOrigin);
   }
+
+  public constructor(private allowOrigin: string) {}
 
   public async handle(
     remoteCallHandler: RemoteCallHandlerInterface,
@@ -39,8 +41,8 @@ export class BaseRemoteCallHandler {
     res: express.Response,
   ): Promise<void> {
     TOTAL_COUNTER.inc({ path: remoteCallHandler.descriptor.path });
-    // Always allow CORS.
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    // Add CORS rules.
+    res.setHeader("Access-Control-Allow-Origin", this.allowOrigin);
     res.setHeader("Access-Control-Allow-Methods", "*");
     res.setHeader("Access-Control-Allow-Headers", "*");
 
@@ -136,13 +138,18 @@ export class BaseRemoteCallHandler {
     messageDescriptor: MessageDescriptor<any>,
     what: string,
   ): any {
+    let ret: any;
     try {
-      return destringifyMessage(value, messageDescriptor);
+      ret = destringifyMessage(value, messageDescriptor);
     } catch (e) {
       throw newBadRequestError(
         `${loggingPrefix} Unable to destringify ${what}. Raw string: ${value}.`,
       );
     }
+    if (!ret) {
+      throw newBadRequestError(`${loggingPrefix} ${what} is empty.`);
+    }
+    return ret;
   }
 
   private deserialize(
@@ -151,13 +158,18 @@ export class BaseRemoteCallHandler {
     messageDescriptor: MessageDescriptor<any>,
     what: string,
   ): any {
+    let ret: any;
     try {
-      return deserializeMessage(value, messageDescriptor);
+      ret = deserializeMessage(value, messageDescriptor);
     } catch (e) {
       throw newBadRequestError(
         `${loggingPrefix} Unable to deserialize ${what}. Raw value as base64: ${Buffer.from(value).toString("base64")}.`,
       );
     }
+    if (!ret) {
+      throw newBadRequestError(`${loggingPrefix} ${what} is empty.`);
+    }
+    return ret;
   }
 
   private async sendResponse(

@@ -4,24 +4,10 @@ import https = require("https");
 import promClient = require("prom-client");
 import { BaseRemoteCallHandler } from "./base_remote_call_handler";
 import { CorsAllowedPreflightHandler } from "./cors_allowed_preflight_handler";
-import {
-  ServiceDescriptor,
-} from "@selfage/service_descriptor";
+import { ServiceDescriptor } from "@selfage/service_descriptor";
 import { RemoteCallHandlerInterface } from "@selfage/service_descriptor/remote_call_handler_interface";
 
 export class HandlerRegister {
-  public static create(
-    app: express.Application,
-    baseHandler: BaseRemoteCallHandler,
-    serviceDescriptor: ServiceDescriptor,
-  ): HandlerRegister {
-    return new HandlerRegister(
-      app,
-      baseHandler,
-      serviceDescriptor,
-    );
-  }
-
   private router = express.Router();
 
   public constructor(
@@ -47,26 +33,30 @@ export class HandlerRegister {
 
 export class ServiceHandler {
   public static create(
-    server: http.Server | https.Server
+    server: http.Server | https.Server,
+    allowOrigin: string = "*",
   ): ServiceHandler {
     return new ServiceHandler(
       server,
-      BaseRemoteCallHandler.create(),
+      BaseRemoteCallHandler.create(allowOrigin),
+      CorsAllowedPreflightHandler.create(allowOrigin),
     );
   }
 
-  private app =  express();
+  private app = express();
 
   public constructor(
     private server: http.Server | https.Server,
     private baseHandler: BaseRemoteCallHandler,
+    private corsAllowedPreflightHandler: CorsAllowedPreflightHandler,
   ) {
     this.server.on("request", this.app);
   }
 
   public addCorsAllowedPreflightHandler(): this {
-    let handler = new CorsAllowedPreflightHandler();
-    this.app.options("/*", (req, res) => handler.handle(res));
+    this.app.options("/*", (req, res) =>
+      this.corsAllowedPreflightHandler.handle(res),
+    );
     return this;
   }
 
@@ -85,23 +75,24 @@ export class ServiceHandler {
     return this;
   }
 
+  public addReadinessHandler(): this {
+    this.app.get("/readiness", (req, res) => {
+      res.end("OK");
+    });
+    return this;
+  }
+
   public addHandlerRegister(
     serviceDescriptor: ServiceDescriptor,
   ): HandlerRegister {
-    return HandlerRegister.create(
-      this.app,
-      this.baseHandler,
-      serviceDescriptor,
-    );
+    return new HandlerRegister(this.app, this.baseHandler, serviceDescriptor);
   }
 
   public async start(port: number): Promise<this> {
     await new Promise<void>((resolve) => {
       this.server.listen(port, () => resolve());
     });
-    console.log(
-      `Server is listening on port ${port}.`,
-    );
+    console.log(`Server is listening on port ${port}.`);
     return this;
   }
 
