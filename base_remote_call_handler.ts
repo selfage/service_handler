@@ -40,7 +40,11 @@ export class BaseRemoteCallHandler {
     req: express.Request,
     res: express.Response,
   ): Promise<void> {
-    TOTAL_COUNTER.inc({ path: remoteCallHandler.descriptor.path });
+    TOTAL_COUNTER.inc({
+      path:
+        remoteCallHandler.descriptor.service.path +
+        remoteCallHandler.descriptor.path,
+    });
     // Add CORS rules.
     res.setHeader("Access-Control-Allow-Origin", this.allowOrigin);
     res.setHeader("Access-Control-Allow-Methods", "*");
@@ -67,7 +71,9 @@ export class BaseRemoteCallHandler {
       console.error(`${loggingPrefix} ${e.stack ?? e.message ?? e}`);
       let statusCode = e.statusCode ?? StatusCode.InternalServerError;
       FAILURE_COUNTER.inc({
-        path: remoteCallHandler.descriptor.path,
+        path:
+          remoteCallHandler.descriptor.service.path +
+          remoteCallHandler.descriptor.path,
         errorCode: statusCode,
       });
       res.sendStatus(statusCode);

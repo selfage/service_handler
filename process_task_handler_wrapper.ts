@@ -52,6 +52,7 @@ export class ProcessTaskHandlerWrapper extends EventEmitter {
     processFn: () => Promise<void>,
   ): Promise<void> {
     await claimTaskFn();
+    // Not awaiting here and let the actual processing happen asynchronously.
     this.processAndCatchError(loggingPrefix, processFn);
   }
 
