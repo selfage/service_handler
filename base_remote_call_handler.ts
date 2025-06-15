@@ -169,7 +169,7 @@ export class BaseRemoteCallHandler {
       ret = deserializeMessage(value, messageDescriptor);
     } catch (e) {
       throw newBadRequestError(
-        `${loggingPrefix} Unable to deserialize ${what}. Raw value as base64: ${Buffer.from(value).toString("base64")}.`,
+        `${loggingPrefix} Unable to deserialize ${what}. Raw value as base64: ${Buffer.from(value).toString("base64")}. ${e.stack ?? e.message ?? e}`,
       );
     }
     if (!ret) {
