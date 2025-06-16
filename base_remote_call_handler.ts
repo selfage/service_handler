@@ -130,12 +130,12 @@ export class BaseRemoteCallHandler {
       let authStr = req.header(remoteCallHandler.descriptor.authKey);
       if (!authStr) {
         throw newUnauthorizedError(
-          `${loggingPrefix} No auth string is found in the header ${remoteCallHandler.descriptor.authKey}.`,
+          `No auth string is found in the header ${remoteCallHandler.descriptor.authKey}.`,
         );
       }
       args.push(authStr);
     }
-    return remoteCallHandler.handle(...args);
+    return await remoteCallHandler.handle(...args);
   }
 
   private destringify(
@@ -149,11 +149,12 @@ export class BaseRemoteCallHandler {
       ret = destringifyMessage(value, messageDescriptor);
     } catch (e) {
       throw newBadRequestError(
-        `${loggingPrefix} Unable to destringify ${what}. Raw string: ${value}.`,
+        `Unable to destringify ${what}. Raw string: ${value}.`,
+        e,
       );
     }
     if (!ret) {
-      throw newBadRequestError(`${loggingPrefix} ${what} is empty.`);
+      throw newBadRequestError(`${what} is empty.`);
     }
     return ret;
   }
@@ -169,7 +170,8 @@ export class BaseRemoteCallHandler {
       ret = deserializeMessage(value, messageDescriptor);
     } catch (e) {
       throw newBadRequestError(
-        `${loggingPrefix} Unable to deserialize ${what}. Raw value as base64: ${Buffer.from(value).toString("base64")}. ${e.stack ?? e.message ?? e}`,
+        `Unable to deserialize ${what}. Raw value as base64: ${Buffer.from(value).toString("base64")}.`,
+        e,
       );
     }
     if (!ret) {

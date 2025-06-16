@@ -9,6 +9,7 @@ import { RemoteCallHandlerInterface } from "@selfage/service_descriptor/remote_c
 
 export class HandlerRegister {
   private router = express.Router();
+  private addedPaths: Set<string> = new Set();
 
   public constructor(
     app: express.Application,
@@ -24,6 +25,13 @@ export class HandlerRegister {
         `The remote call handler ${remoteCallHandler.descriptor.name} is defined in service ${remoteCallHandler.descriptor.service.name} but being added to service ${this.serviceDescriptor.name}.`,
       );
     }
+    if (this.addedPaths.has(remoteCallHandler.descriptor.path)) {
+      throw new Error(
+        `The remote call handler ${remoteCallHandler.descriptor.name} is defined with a path path ${remoteCallHandler.descriptor.path} that's already registered.`,
+      );
+    }
+    this.addedPaths.add(remoteCallHandler.descriptor.path);
+
     this.router.post(remoteCallHandler.descriptor.path, (req, res) =>
       this.baseHandler.handle(remoteCallHandler, req, res),
     );
