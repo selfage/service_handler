@@ -37,6 +37,7 @@ import {
   UploadFileRequestMetadata,
   UploadFileResponse,
 } from "./test_data/upload_file";
+import { parseMessage } from "@selfage/message/parser";
 import {
   deserializeMessage,
   serializeMessage,
@@ -89,6 +90,54 @@ TEST_RUNNER.run({
               headers: { "Content-Type": "application/octet-stream" },
             })
           ).buffer(),
+          GET_COMMENTS_RESPONSE,
+        );
+
+        // Verify
+        assertThat(
+          capturedBody,
+          eqMessage({ videoId: "idx" }, GET_COMMENTS_REQUEST_BODY),
+          "request body",
+        );
+        assertThat(
+          response,
+          eqMessage({ texts: ["aaaa", "bbb", "cc"] }, GET_COMMENTS_RESPONSE),
+          "response",
+        );
+      }
+      public async tearDown() {
+        await this.service.stop();
+      }
+    })(),
+    new (class implements TestCase {
+      public name = "GetCommentsWithLegacyJSONRequest";
+      private service: ServiceHandler;
+      public async execute() {
+        // Prepare
+        let capturedBody: GetCommentsRequestBody;
+        let getCommentHandler: GetCommentsHandlerInterface =
+          new (class extends GetCommentsHandlerInterface {
+            public async handle(
+              loggingPrefix: string,
+              body: GetCommentsRequestBody,
+            ): Promise<GetCommentsResponse> {
+              capturedBody = body;
+              return { texts: ["aaaa", "bbb", "cc"] };
+            }
+          })();
+
+        // Execute
+        this.service = ServiceHandler.create(http.createServer());
+        this.service.addHandlerRegister(NODE_SERVICE).add(getCommentHandler);
+        await this.service.start(8080);
+        let response = parseMessage(
+          await (
+            await nodeFetch(`http://${HOSTNAME}:8080/node/GetComments`, {
+              method: "post",
+              body: JSON.stringify({ videoId: "idx" }),
+              headers: { "Content-Type": "application/json" },
+            })
+          ).json(),
           GET_COMMENTS_RESPONSE,
         );
 

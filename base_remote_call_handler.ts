@@ -9,6 +9,7 @@ import {
   newUnauthorizedError,
 } from "@selfage/http_error";
 import { MessageDescriptor } from "@selfage/message/descriptor";
+import { parseMessage } from "@selfage/message/parser";
 import {
   deserializeMessage,
   serializeMessage,
@@ -57,16 +58,7 @@ export class BaseRemoteCallHandler {
     console.info(`${loggingPrefix} ${req.url}.`);
 
     try {
-      let response = await this.handleRequest(
-        loggingPrefix,
-        remoteCallHandler,
-        req,
-      );
-      await this.sendResponse(
-        res,
-        response,
-        remoteCallHandler.descriptor.response.messageType,
-      );
+      await this.handleRequest(loggingPrefix, remoteCallHandler, req, res);
     } catch (e) {
       console.error(`${loggingPrefix} ${e.stack ?? e.message ?? e}`);
       let statusCode = e.statusCode ?? StatusCode.InternalServerError;
@@ -85,20 +77,35 @@ export class BaseRemoteCallHandler {
     loggingPrefix: string,
     remoteCallHandler: RemoteCallHandlerInterface,
     req: express.Request,
-  ): Promise<any> {
+    res: express.Response,
+  ): Promise<void> {
     let args: any[] = [loggingPrefix];
+    let legacyJsonQuery = false;
     if (remoteCallHandler.descriptor.body.messageType) {
       let bodyBuffer = await getStream.buffer(req, {
         maxBuffer: 1 * 1024 * 1024,
       });
-      args.push(
-        this.deserialize(
-          loggingPrefix,
-          bodyBuffer,
-          remoteCallHandler.descriptor.body.messageType,
-          `body`,
-        ),
-      );
+      if (req.headers["content-type"] === "application/json") {
+        legacyJsonQuery = true;
+        let bodyStr = bodyBuffer.toString("utf-8");
+        args.push(
+          this.parse(
+            loggingPrefix,
+            bodyStr,
+            remoteCallHandler.descriptor.body.messageType,
+            `body`,
+          ),
+        );
+      } else {
+        args.push(
+          this.deserialize(
+            loggingPrefix,
+            bodyBuffer,
+            remoteCallHandler.descriptor.body.messageType,
+            `body`,
+          ),
+        );
+      }
     } else if (remoteCallHandler.descriptor.body.streamMessageType) {
       // NOTE: Doesn't work! Client side requires http2 to enable custom streaming with unspecified content length.
       let streamReader = new StreamMessageReader(
@@ -135,7 +142,23 @@ export class BaseRemoteCallHandler {
       }
       args.push(authStr);
     }
-    return await remoteCallHandler.handle(...args);
+    let response = await remoteCallHandler.handle(...args);
+
+    await new Promise<void>((resolve) => {
+      if (legacyJsonQuery) {
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(response), resolve);
+      } else {
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.end(
+          serializeMessage(
+            response,
+            remoteCallHandler.descriptor.response.messageType,
+          ),
+          resolve,
+        );
+      }
+    });
   }
 
   private destringify(
@@ -175,18 +198,29 @@ export class BaseRemoteCallHandler {
       );
     }
     if (!ret) {
-      throw newBadRequestError(`${loggingPrefix} ${what} is empty.`);
+      throw newBadRequestError(`${what} is empty.`);
     }
     return ret;
   }
 
-  private async sendResponse(
-    res: express.Response,
-    handlerResponse: any,
+  private parse(
+    loggingPrefix: string,
+    value: string,
     messageDescriptor: MessageDescriptor<any>,
-  ): Promise<void> {
-    await new Promise<void>((resolve) =>
-      res.end(serializeMessage(handlerResponse, messageDescriptor), resolve),
-    );
+    what: string,
+  ): any {
+    let ret: any;
+    try {
+      ret = parseMessage(JSON.parse(value), messageDescriptor);
+    } catch (e) {
+      throw newBadRequestError(
+        `Unable to parse ${what}. Raw value: ${value}.`,
+        e,
+      );
+    }
+    if (!ret) {
+      throw newBadRequestError(`${what} is empty.`);
+    }
+    return ret;
   }
 }
