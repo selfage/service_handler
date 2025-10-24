@@ -43,20 +43,21 @@ export class ServiceHandler {
   public static create(
     server: http.Server | https.Server,
     allowOrigin: string = "*",
+    app: express.Express = express(),
   ): ServiceHandler {
     return new ServiceHandler(
       server,
       BaseRemoteCallHandler.create(allowOrigin),
       CorsAllowedPreflightHandler.create(allowOrigin),
+      app,
     );
   }
-
-  private app = express();
 
   public constructor(
     private server: http.Server | https.Server,
     private baseHandler: BaseRemoteCallHandler,
     private corsAllowedPreflightHandler: CorsAllowedPreflightHandler,
+    private app: express.Express,
   ) {
     this.server.on("request", this.app);
   }
